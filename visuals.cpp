@@ -261,44 +261,66 @@ void Visuals::think( ) {
 	AutomaticPeekIndicator();
 }
 
-void Visuals::Spectators( ) {
-	if( !g_menu.main.visuals.spectators.get( ) )
+//do not even dare to make fun of me for this code I am off of 0 fucking sleep for well over 24 hours again
+
+void Visuals::Spectators() {
+
+	if (!g_csgo.m_engine->IsInGame() || !g_cl.m_local->alive())
 		return;
 
-	std::vector< std::string > spectators{ XOR( "spectators" ) };
-	int h = render::menu_shade.m_size.m_height;
+	if (!g_menu.main.visuals.spectators.get())
+		return;
 
-	for( int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i ) {
-		Player* player = g_csgo.m_entlist->GetClientEntity< Player* >( i );
-		if( !player )
+	Color icolor = g_gui.m_color;
+	std::vector< std::string > spectators{ };
+	if (g_menu.main.visuals.spectators_mode.get() == 0) {
+		render::rect_outlined(g_cl.m_width - 180, g_cl.m_height / 2 + 10, 170, 17, { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 });
+		render::gradient(g_cl.m_width - 180, g_cl.m_height / 2 + 10, 170, 17, { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 }, true);
+		render::menu.string(g_cl.m_width - 95, g_cl.m_height / 2 + 12, colors::white, XOR("Spectators"), render::ALIGN_CENTER);
+	}
+
+	for (int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i) {
+		Player* player = g_csgo.m_entlist->GetClientEntity< Player* >(i);
+		if (!player)
 			continue;
 
-		if( player->m_bIsLocalPlayer( ) )
+		if (player->m_bIsLocalPlayer())
 			continue;
 
-		if( player->dormant( ) )
+		if (player->dormant())
 			continue;
 
-		if( player->m_lifeState( ) == LIFE_ALIVE )
+		if (player->m_lifeState() == LIFE_ALIVE)
 			continue;
 
-		if( player->GetObserverTarget( ) != g_cl.m_local )
+		if (player->GetObserverTarget() != g_cl.m_local)
 			continue;
 
 		player_info_t info;
-		if( !g_csgo.m_engine->GetPlayerInfo( i, &info ) )
+		if (!g_csgo.m_engine->GetPlayerInfo(i, &info))
 			continue;
 
-		spectators.push_back( std::string( info.m_name ).substr( 0, 24 ) );
+		spectators.push_back(std::string(info.m_name).substr(0, 24));
 	}
 
-	size_t total_size = spectators.size( ) * ( h - 1 );
+	if (spectators.empty())
+		return;
+	
+	if (g_menu.main.visuals.spectators_mode.get() == 0) {
+		render::rect_outlined(g_cl.m_width - 180, g_cl.m_height / 2 + 37, 170, (spectators.size() * 15), { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 });
+		render::gradient(g_cl.m_width - 180, g_cl.m_height / 2 + 37, 170, (spectators.size() * 15), { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 }, false);
+	}
 
-	for( size_t i{ }; i < spectators.size( ); ++i ) {
-		const std::string& name = spectators[ i ];
 
-		render::menu_shade.string( g_cl.m_width - 20, ( g_cl.m_height / 2 ) - ( total_size / 2 ) + ( i * ( h - 1 ) ),
-			{ 255, 255, 255, 179 }, name, render::ALIGN_RIGHT );
+	for (size_t i{ }; i < spectators.size(); ++i) {
+		auto& spectator = spectators[i];
+		if (g_menu.main.visuals.spectators_mode.get() == 0) {
+			render::menu.string(g_cl.m_width - 95, (g_cl.m_height / 2 + 37) + (i * 15), colors::white, spectator, render::ALIGN_CENTER);
+		}
+		
+		else if (g_menu.main.visuals.spectators_mode.get() == 1) {
+			render::menu.string(g_cl.m_width, 20 + (i * 15), colors::white, spectator, render::ALIGN_RIGHT);
+		}	
 	}
 }
 
