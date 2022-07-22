@@ -25,25 +25,17 @@ void Client::DrawHUD( ) {
 	if( !g_csgo.m_engine->IsInGame( ) )
 		return;
 
-	// get time.
-	time_t t = std::time( nullptr );
-	std::ostringstream time;
-	time << std::put_time( std::localtime( &t ), ( "%H:%M:%S" ) );
+	static const std::string text = "ambien recode | debug";
+	render::FontSize_t size = render::menu.size(text);
+	Color menu = g_gui.m_color;
 
-	// get round trip time in milliseconds.
-	int ms = std::max( 0, ( int ) std::round( g_cl.m_latency * 1000.f ) );
 
-	// get tickrate.
-	int rate = ( int ) std::round( 1.f / g_csgo.m_globals->m_interval );
+	// background
+	render::rect_outlined(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { menu.r(), menu.g(), menu.b(), 90 }, false);
+	render::gradient(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { menu.r(), menu.g(), menu.b(), 90 }, { menu.r(), menu.g(), menu.b(), 20 }, false);
 
-	std::string text = tfm::format( XOR( "supremacy | rtt: %ims | rate: %i | %s" ), ms, rate, time.str( ).data( ) );
-	render::FontSize_t size = render::hud.size( text );
-
-	// background.
-	render::rect_filled( m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { 240, 110, 140, 130 } );
-
-	// text.
-	render::hud.string( m_width - 15, 10, { 240, 160, 180, 250 }, text, render::ALIGN_RIGHT );
+	// text
+	render::menu.string(m_width - 15, 10, { 255, 255, 255, 150 }, text, render::ALIGN_RIGHT);
 }
 
 void Client::KillFeed( ) {
@@ -118,26 +110,24 @@ void Client::OnMapload( ) {
 
 	g_cl.UnlockHiddenConvars();
 
-	g_csgo.m_engine->ExecuteClientCmd("r_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("r_dynamic 0");
-	g_csgo.m_engine->ExecuteClientCmd("r_drawtracers_firstperson 0");
-	g_csgo.m_engine->ExecuteClientCmd("r_jiggle_bones 0");
-	g_csgo.m_engine->ExecuteClientCmd("muzzleflash_light 0");
-	g_csgo.m_engine->ExecuteClientCmd("mat_queue_mode 2");
-	g_csgo.m_engine->ExecuteClientCmd("cl_csm_static_prop_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_csm_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_csm_world_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_foot_contact_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_csm_viewmodel_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_csm_rope_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_csm_sprite_shadows 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_threaded_bone_setup 0");
-	g_csgo.m_engine->ExecuteClientCmd("cl_smooth 0");
-	g_csgo.m_engine->ExecuteClientCmd("fps_max 999");
-	g_csgo.m_engine->ExecuteClientCmd("fps_max_menu 999");
-	g_csgo.m_engine->ExecuteClientCmd("cl_forcepreload 1");
-	g_csgo.m_engine->ExecuteClientCmd("r_eyegloss 0");
-	g_csgo.m_engine->ExecuteClientCmd("r_eyemove 0");
+	if (g_csgo.m_cvar) {
+		g_csgo.m_engine->ExecuteClientCmd("r_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("r_dynamic 0");
+		g_csgo.m_engine->ExecuteClientCmd("r_drawtracers_firstperson 0");
+		g_csgo.m_engine->ExecuteClientCmd("r_jiggle_bones 0");
+		g_csgo.m_engine->ExecuteClientCmd("mat_queue_mode 2");
+		g_csgo.m_engine->ExecuteClientCmd("cl_csm_static_prop_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("cl_csm_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("cl_csm_world_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("cl_foot_contact_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("cl_csm_viewmodel_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("cl_csm_rope_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("cl_csm_sprite_shadows 0");
+		g_csgo.m_engine->ExecuteClientCmd("fps_max 999");
+		g_csgo.m_engine->ExecuteClientCmd("fps_max_menu 999");
+		g_csgo.m_engine->ExecuteClientCmd("r_eyegloss 0");
+		g_csgo.m_engine->ExecuteClientCmd("r_eyemove 0");
+	}
 
 	// if the INetChannelInfo pointer has changed, store it for later.
 	g_csgo.m_net = g_csgo.m_engine->GetNetChannelInfo( );
@@ -149,6 +139,78 @@ void Client::OnMapload( ) {
 		g_hooks.m_net_channel.add( INetChannel::SENDDATAGRAM, util::force_cast( &Hooks::SendDatagram ) );
 	}
 }
+
+void Client::MouseFix(CUserCmd* cmd) {
+	/*
+	  FULL CREDITS TO:
+	  - polak ( for having this in aimware )
+	  - llama ( for having this in onetap and confirming it )
+	*/
+
+	// purpose is to fix mouse dx/dy - there is a noticeable difference once fixed
+
+	static ang_t delta_viewangles{ };
+	ang_t delta = cmd->m_view_angles - delta_viewangles;
+
+	static ConVar* sensitivity = g_csgo.m_cvar->FindVar(HASH("sensitivity"));
+
+	if (delta.x != 0.f) {
+		static ConVar* m_pitch = g_csgo.m_cvar->FindVar(HASH("m_pitch"));
+
+		int final_dy = static_cast<int>((delta.x / m_pitch->GetFloat()) / sensitivity->GetFloat());
+		if (final_dy <= 32767) {
+			if (final_dy >= -32768) {
+				if (final_dy >= 1 || final_dy < 0) {
+					if (final_dy <= -1 || final_dy > 0)
+						final_dy = final_dy;
+					else
+						final_dy = -1;
+				}
+				else {
+					final_dy = 1;
+				}
+			}
+			else {
+				final_dy = 32768;
+			}
+		}
+		else {
+			final_dy = 32767;
+		}
+
+		cmd->m_mousedy = static_cast<short>(final_dy);
+	}
+
+	if (delta.y != 0.f) {
+		static ConVar* m_yaw = g_csgo.m_cvar->FindVar(HASH("m_yaw"));
+
+		int final_dx = static_cast<int>((delta.y / m_yaw->GetFloat()) / sensitivity->GetFloat());
+		if (final_dx <= 32767) {
+			if (final_dx >= -32768) {
+				if (final_dx >= 1 || final_dx < 0) {
+					if (final_dx <= -1 || final_dx > 0)
+						final_dx = final_dx;
+					else
+						final_dx = -1;
+				}
+				else {
+					final_dx = 1;
+				}
+			}
+			else {
+				final_dx = 32768;
+			}
+		}
+		else {
+			final_dx = 32767;
+		}
+
+		cmd->m_mousedx = static_cast<short>(final_dx);
+	}
+
+	delta_viewangles = cmd->m_view_angles;
+}
+
 
 void Client::StartMove( CUserCmd* cmd ) {
 	// save some usercmd stuff.
@@ -178,13 +240,29 @@ void Client::StartMove( CUserCmd* cmd ) {
 	if( !m_processing )
 		return;
 
+	m_pressing_move = (m_buttons & (IN_LEFT) || m_buttons & (IN_FORWARD) || m_buttons & (IN_BACK) ||
+		m_buttons & (IN_RIGHT) || m_buttons & (IN_MOVELEFT) || m_buttons & (IN_MOVERIGHT) ||
+		m_buttons & (IN_JUMP));
+
+
+
+
 	// make sure prediction has ran on all usercommands.
 	// because prediction runs on frames, when we have low fps it might not predict all usercommands.
 	// also fix the tick being inaccurate.
 	g_inputpred.update( );
 
+
+	auto backup_tickbase = g_cl.m_local->m_nTickBase();
+
+	if (g_tickshift.m_charged_ticks)
+		fixed_tickbase = g_cl.m_local->m_nTickBase() - g_tickshift.m_charged_ticks;
+	else
+		fixed_tickbase = backup_tickbase;
+
 	// store some stuff about the local player.
 	m_flags = m_local->m_fFlags( );
+	max_bt = 0.2f;//g_tickshift.m_double_tap ? (g_tickshift.m_charged_ticks / 14.f * 0.1f) : 0.2f;
 
 	// ...
 	m_shot = false;
@@ -197,14 +275,16 @@ void Client::BackupPlayers( bool restore ) {
 void Client::DoMove( ) {
 	penetration::PenetrationOutput_t tmp_pen_data{ };
 
+
+	// backup strafe angles (we need them for input prediction)
+	m_strafe_angles = m_cmd->m_view_angles;
+
 	// run movement code before input prediction.
 	g_movement.JumpRelated( );
 	g_movement.Strafe( );
 	g_movement.FakeWalk( );
 	g_movement.AutoPeek( );
-
-	// backup strafe angles (we need them for input prediction)
-	m_strafe_angles = m_cmd->m_view_angles;
+	g_movement.AutoPeek(g_cl.m_cmd, m_strafe_angles.y);
 
 	// predict input.
 	g_inputpred.run( );
@@ -261,6 +341,37 @@ void Client::DoMove( ) {
 		m_weapon_fire = CanFireWeapon( );
 	}
 
+	int updated_this_tick = 0;
+
+	for (int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i) {
+		Player* player = g_csgo.m_entlist->GetClientEntity< Player* >(i);
+
+		if (!g_aimbot.IsValidTarget(player))
+			continue;
+
+		AimPlayer* data = &g_aimbot.m_players[i - 1];
+		if (!data)
+			continue;
+
+		if (data->m_records.empty())
+			continue;
+
+		if (!data->m_records.front().get()->valid())
+			continue;
+
+		if (player->m_flSimulationTime() < data->m_last_freestand_scan)
+			continue;
+
+		if (updated_this_tick > 0) {
+			data->m_last_freestand_scan = player->m_flSimulationTime() + 0.3f; // delay it so it doesnt rape our fps (here its 300ms?)
+			continue;
+		}
+
+		++updated_this_tick;
+		data->m_last_freestand_scan = player->m_flSimulationTime() + (g_cl.get_fps() <= 90 ? 3.f : 1.f);
+		g_lagcomp.collect_awall_shit(data);
+	}
+
 	// last tick defuse.
 	// todo - dex;  figure out the range for CPlantedC4::Use?
 	//              add indicator if valid (on ground, still have time, not being defused already, etc).
@@ -306,11 +417,8 @@ void Client::DoMove( ) {
 		m_cmd->m_buttons &= ~IN_ATTACK;
 	}
 
-	// would not work without this for obv reasons.
-	// g_movement.AutoPeek();
-
 	// run antiaims.
-	if (!g_tickshift.m_shifting && !g_tickshift.m_shifted) {
+	if (!g_tickshift.m_shifting) {
 		g_hvh.AntiAim();
 	}
 }
@@ -516,7 +624,7 @@ void Client::print( const std::string text, ... ) {
 	va_end( list );
 
 	// print to console.
-	g_csgo.m_cvar->ConsoleColorPrintf( colors::burgundy, XOR( "[supremacy] " ) );
+	g_csgo.m_cvar->ConsoleColorPrintf( g_gui.m_color, XOR( "[ambien] " ) );
 	g_csgo.m_cvar->ConsoleColorPrintf( colors::white, buf.c_str( ) );
 }
 

@@ -7,9 +7,10 @@ LagRecord* Resolver::FindIdealRecord( AimPlayer* data ) {
 	if( data->m_records.empty( ) )
 		return nullptr;
 
-
     // iterate records.
 	for( const auto &it : data->m_records ) {
+		
+
 		if( it->dormant( ) || it->immune( ) || !it->valid( ) )
 			continue;
 
@@ -49,11 +50,90 @@ float Resolver::GetAwayAngle(LagRecord* record) {
 	vec3_t pos;
 	ang_t  away;
 
+	if (g_cl.m_net_pos.empty()) {
+		math::VectorAngles(g_cl.m_local->m_vecOrigin() - record->m_pred_origin, away);
+		return away.y;
+	}
 
-	math::VectorAngles(g_cl.m_local->m_vecOrigin() - record->m_pred_origin, away);
+	float owd = (g_cl.m_latency / 2.f);
+
+	float target = record->m_pred_time;
+
+	// iterate all.
+	for (const auto& net : g_cl.m_net_pos) {
+		float dt = std::abs(target - net.m_time);
+
+		// the best origin.
+		if (dt < delta) {
+			delta = dt;
+			pos = net.m_pos;
+		}
+	}
+
+	math::VectorAngles(pos - record->m_pred_origin, away);
 	return away.y;
-
 }
+
+
+void Resolver::PredictBodyUpdates(Player* player, LagRecord* record) {
+
+	if (!g_cl.m_processing)
+		return;
+
+	AimPlayer* data = &g_aimbot.m_players[player->index() - 1];
+
+	if (!data)
+		return;
+
+	if (data->m_records.empty())
+		return;
+
+	// inform esp that we're about to be the prediction process
+	data->m_predict = true;
+
+	//check if the player is walking
+	// no need for the extra fakewalk check since we null velocity when they're fakewalking anyway
+	if (record->m_anim_velocity.length_2d() > 0.1f && !record->m_fake_walk) {
+		// predict the first flick they have to do after they stop moving
+		data->m_body_update = player->m_flSimulationTime() + 0.22f;
+
+		// since we are still not in the prediction process, inform the cheat that we arent predicting yet
+		// this is only really used to determine if we should draw the lby timer bar on esp, no other real purpose
+		data->m_predict = false;
+
+		// stop here
+		return;
+	}
+
+	if (data->m_body_index > 0)
+		return;
+
+	if (data->m_records.size() >= 2) {
+		LagRecord* previous = data->m_records[1].get();
+
+		if (previous && previous->valid()) { //&& !record->m_retard && !previous->m_retard) {
+			// lby updated on this tick
+			if (previous->m_body != player->m_flLowerBodyYawTarget() || player->m_flSimulationTime() >= data->m_body_update) {
+
+				// for backtrack
+				// record->m_resolved = true;
+
+				// inform the cheat of the resolver method
+				record->m_mode = RESOLVE_BODY;
+
+				// predict the next body update
+				data->m_body_update = player->m_flSimulationTime() + 1.1f;
+
+				// set eyeangles to lby
+				record->m_eye_angles.y = record->m_body;
+				math::NormalizeAngle(record->m_eye_angles.y);
+
+				player->m_angEyeAngles().y = record->m_eye_angles.y;
+			}
+		}
+	}
+}
+
 
 void Resolver::MatchShot( AimPlayer* data, LagRecord* record ) {
 	// do not attempt to do this in nospread mode.
@@ -66,11 +146,11 @@ void Resolver::MatchShot( AimPlayer* data, LagRecord* record ) {
 	if( weapon ) {
 		// with logging this time was always one tick behind.
 		// so add one tick to the last shoot time.
-		shoot_time = weapon->m_fLastShotTime( ) + g_csgo.m_globals->m_interval;
+		shoot_time = weapon->m_fLastShotTime( );
 	}
 
 	// this record has a shot on it.
-	if( game::TIME_TO_TICKS( shoot_time ) == game::TIME_TO_TICKS( record->m_sim_time ) ) {
+	if( shoot_time != data->m_last_shoot_time && shoot_time != -1 ) {
 		if( record->m_lag <= 2 )
 			record->m_shot = true;
 		
@@ -129,6 +209,10 @@ void Resolver::ResolveAngles( Player* player, LagRecord* record ) {
 	else if( record->m_mode == Modes::RESOLVE_AIR )
 		ResolveAir( data, record );
 
+
+	// fuck yall
+	PredictBodyUpdates(player, record);
+
 	// normalize the eye angles, doesn't really matter but its clean.
 	math::NormalizeAngle( record->m_eye_angles.y );
 }
@@ -138,17 +222,40 @@ void Resolver::ResolveWalk( AimPlayer* data, LagRecord* record ) {
 	record->m_eye_angles.y = record->m_body;
 
 	// delay body update.
-	data->m_body_update = record->m_anim_time + 0.22f;
+	// data->m_body_update = record->m_anim_time + 0.22f;
 
 	// reset stand and body index.
-	data->m_stand_index  = 0;
-	data->m_stand_index2 = 0;
-	data->m_body_index   = 0;
+
+	// reset stand and body index.		
+	data->m_last_freestand_scan = record->m_sim_time + 0.05f;
+
+	if (record->m_anim_velocity.length() > 40.f) { // niggers
+		data->m_stand_index = 0;
+		data->m_stand_index2 = 0;
+
+		if (record->m_anim_velocity.length() > 80.f || record->m_lag > 4) {
+			data->m_body_index = 0;
+		}
+	}
 
 	// copy the last record that this player was walking
 	// we need it later on because it gives us crucial data.
 	std::memcpy( &data->m_walk_record, record, sizeof( LagRecord ) );
 }
+
+
+void Resolver::anti_freestand(AimPlayer* data, LagRecord* record) {
+	float away = GetAwayAngle(record);
+
+
+
+	if ((data->tr_right.m_fraction > 0.97f && data->tr_left.m_fraction > 0.97f) || (data->tr_left.m_fraction == data->tr_right.m_fraction) || std::abs(data->tr_left.m_fraction - data->tr_right.m_fraction) <= 0.1f)
+		record->m_eye_angles.y = away + 180.f;
+	else
+		record->m_eye_angles.y = (data->tr_left.m_fraction < data->tr_right.m_fraction) ? away - 90.f : away + 90.f;
+}
+
+
 
 void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 	// for no-spread call a seperate resolver.
@@ -176,65 +283,42 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 
 	// a valid moving context was found
 	if( data->m_moved ) {
-		float diff = math::NormalizedAngle( record->m_body - move->m_body );
+		float diff = std::abs(math::AngleDiff( record->m_body, move->m_body ));
 		float delta = record->m_anim_time - move->m_anim_time;
 
 		// it has not been time for this first update yet.
-		if( delta < 0.22f ) {
+		if( delta < 0.22f && diff < 35.f ) {
+
 			// set angles to current LBY.
-			record->m_eye_angles.y = move->m_body;
+			record->m_eye_angles.y = record->m_body;
 
 			// set resolve mode.
-			record->m_mode = Modes::RESOLVE_STOPPED_MOVING;
+			record->m_mode = Modes::RESOLVE_BODY;
 
 			// exit out of the resolver, thats it.
 			return;
 		}
 
-		// LBY SHOULD HAVE UPDATED HERE.
-		else if( record->m_anim_time >= data->m_body_update ) {
-			// only shoot the LBY flick 3 times.
-			// if we happen to miss then we most likely mispredicted.
-			if( data->m_body_index <= 3 ) {
-				// set angles to current LBY.
-				record->m_eye_angles.y = record->m_body;
 
-				// predict next body update.
-				data->m_body_update = record->m_anim_time + 1.1f;
-
-				// set the resolve mode.
-				record->m_mode = Modes::RESOLVE_BODY;
-
-				return;
-			}
-
-			// set to stand1 -> known last move.
-			record->m_mode = Modes::RESOLVE_STAND1;
-
-			C_AnimationLayer* curr = &record->m_layers[ 3 ];
-			int act = data->m_player->GetSequenceActivity( curr->m_sequence );
-
-			// ok, no fucking update. apply big resolver.
-			record->m_eye_angles.y = move->m_body;
-
-			// every third shot do some fuckery.
-			if ( !( data->m_stand_index % 3 ) )
-				record->m_eye_angles.y += g_csgo.RandomFloat( -35.f, 35.f );
-
-			// jesus we can fucking stop missing can we?
-			if( data->m_stand_index > 6 && act != 980 ) {
-				// lets just hope they switched ang after move.
-				record->m_eye_angles.y = move->m_body + 180.f;
-			}
-
-			// we missed 4 shots.
-			else if( data->m_stand_index > 4 && act != 980 ) {
-				// try backwards.
-				record->m_eye_angles.y = away + 180.f;
-			}
-
-			return;
+		switch (data->m_stand_index % 5) {
+		case 0:
+			anti_freestand(data, record);
+			break;
+		case 1:
+			record->m_eye_angles.y = record->m_body + 90.f;
+			break;
+		case 2:
+			record->m_eye_angles.y = record->m_body - 90.f;
+			break;
+		case 3:
+			record->m_eye_angles.y = record->m_body + 45.f;
+			break;
+		case 4:
+			record->m_eye_angles.y = record->m_body - 45.f;
+			break;
 		}
+
+		return;
 	}
 
 	// stand2 -> no known last move.
@@ -243,23 +327,23 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 	switch( data->m_stand_index2 % 6 ) {
 
 	case 0:
-		record->m_eye_angles.y = away + 180.f;
+		anti_freestand(data, record);
 		break;
 
 	case 1:
-		record->m_eye_angles.y = record->m_body;
+		record->m_eye_angles.y = record->m_body - 90.f;
 		break;
 
 	case 2:
-		record->m_eye_angles.y = record->m_body + 180.f;
+		record->m_eye_angles.y = record->m_body + 90.f;
 		break;
 
 	case 3:
-		record->m_eye_angles.y = record->m_body + 110.f;
+		record->m_eye_angles.y = record->m_body + 45;
 		break;
 
 	case 4:
-		record->m_eye_angles.y = record->m_body - 110.f;
+		record->m_eye_angles.y = record->m_body - 45.f;
 		break;
 
 	case 5:

@@ -16,6 +16,7 @@ public:
 	void PlayerMove( LagRecord* record );
 	void AirAccelerate( LagRecord* record, ang_t angle, float fmove, float smove );
 	void PredictAnimations( CCSGOPlayerAnimState* state, LagRecord* record );
+	void collect_awall_shit(AimPlayer* data);
 };
 
 extern LagCompensation g_lagcomp;

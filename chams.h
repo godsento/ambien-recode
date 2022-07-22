@@ -11,29 +11,42 @@ public:
 	};
 
 public:
-	model_type_t GetModelType( const ModelRenderInfo_t& info );
-	bool IsInViewPlane( const vec3_t& world );
+	model_type_t GetModelType(const ModelRenderInfo_t& info);
+	bool IsInViewPlane(const vec3_t& world);
 
-	void SetColor( Color col, IMaterial* mat = nullptr );
-	void SetAlpha( float alpha, IMaterial* mat = nullptr );
-	void SetupMaterial( IMaterial* mat, Color col, bool z_flag );
+	void SetColor(Color col, IMaterial* mat = nullptr);
+	void SetAlpha(float alpha, IMaterial* mat = nullptr);
+	void SetupMaterial(IMaterial* mat, Color col, bool z_flag);
 
-	void init( );
+	void init();
 
-	bool OverridePlayer( int index );
-	bool GenerateLerpedMatrix( int index, BoneArray* out );
-	void RenderHistoryChams( int index );
-	bool DrawModel( uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone );
-	void SceneEnd( );
+	bool OverridePlayer(int index);
+	bool GenerateLerpedMatrix(int index, BoneArray* out);
+	void RenderHistoryChams(int index);
+	bool DrawModel(uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone);
+	void SetEnvMapInt(Color col, IMaterial* mat);
+	void SceneEnd();
 
-	void RenderPlayer( Player* player );
-	bool SortPlayers( );
+	void RenderPlayer(Player* player);
+	bool SortPlayers();
 
 public:
 	std::vector< Player* > m_players;
 	bool m_running;
 	IMaterial* debugambientcube;
 	IMaterial* debugdrawflat;
+	IMaterial* materialMetall;
+	IMaterial* materialMetall2;
+	IMaterial* materialMetall3;
+	IMaterial* materialMetallnZ;
+	IMaterial* skeet;
+	IMaterial* onetap;
+	IMaterial* animated_shit;
+	IMaterial* animated_shit2;
+	IMaterial* animated_shit3;
+	IMaterial* promethea_glow;
+	IMaterial* flat_wireframe;
+	IMaterial* shaded;
 };
 
 extern Chams g_chams;

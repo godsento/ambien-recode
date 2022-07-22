@@ -149,7 +149,7 @@ void Hooks::init( ) {
 	g_custom_entity_listener.init( );
 
 	// cvar hooks.
-	m_debug_spread.init( g_csgo.net_showfragments );
+	m_debug_spread.init( g_csgo.weapon_debug_spread_show );
 	m_debug_spread.add( ConVar::GETINT, util::force_cast( &Hooks::DebugSpreadGetInt ) );
 
 	m_net_show_fragments.init( g_csgo.net_showfragments );

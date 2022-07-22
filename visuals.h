@@ -96,6 +96,7 @@ public:
 	void think( );
 	void Spectators( );
 	void StatusIndicators( );
+    void AutomaticPeekIndicator();
 	void SpreadCrosshair( );
     void PenetrationCrosshair( );
     void DrawPlantedC4();

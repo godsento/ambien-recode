@@ -3,12 +3,14 @@
 
 void c_tickshift::handle_doubletap() {
 
-	if (!m_double_tap && m_charged) {
+	bool no_dt = m_double_tap && g_cl.m_weapon_id != REVOLVER;
+
+	if (!no_dt && m_charged) {
 		m_charge_timer = 0;
 		m_tick_to_shift = 14;
 	}
 
-	if (!m_double_tap) return;
+	if (!no_dt) return;
 
 
 	bool can_shoot = g_cl.m_weapon_fire || g_cl.m_weapon->m_flNextPrimaryAttack() <= g_csgo.m_globals->m_curtime - game::TICKS_TO_TIME(14);
@@ -35,7 +37,7 @@ void c_tickshift::handle_doubletap() {
 	}
 
 
-	if (g_cl.m_cmd->m_buttons & IN_ATTACK && can_shoot && m_charged && g_cl.m_weapon_type != WEAPONTYPE_GRENADE) {
+	if (g_cl.m_cmd->m_buttons & IN_ATTACK && can_shoot && m_charged && g_cl.m_weapon_type != WEAPONTYPE_GRENADE && g_cl.m_weapon_id != REVOLVER) {
 		// shot.. lets shift tickbase back so we can dt.
 		m_charge_timer = 0;
 		m_tick_to_shift = 14;

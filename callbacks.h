@@ -41,9 +41,13 @@ namespace callbacks {
 	bool AirHasYaw( );
 	bool IsAirYawJitter( );
 	bool IsAirYawRotate( );
+	bool ChamsLocal();
 	bool IsAirYawRandom( );
 	bool IsAirDirAuto( );
 	bool IsAirDirCustom( );
+	bool TeammateVisuals();
+	bool EnemyVisuals();
+	bool ChamsOther();
 	bool IsFakeAntiAimRelative( );
 	bool IsFakeAntiAimJitter( );
 	

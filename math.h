@@ -37,6 +37,21 @@ namespace math {
 
     };
 
+    __forceinline float AngleDiff(float destAngle, float srcAngle) {
+        float delta;
+
+        delta = fmodf(destAngle - srcAngle, 360.0f);
+        if (destAngle > srcAngle) {
+            if (delta >= 180)
+                delta -= 360;
+        }
+        else {
+            if (delta <= -180)
+                delta += 360;
+        }
+        return delta;
+    }
+
     float ApproachAngle( float target, float value, float speed );
     void  VectorAngles( const vec3_t& forward, ang_t& angles, vec3_t* up = nullptr );
     void  AngleVectors( const ang_t& angles, vec3_t* forward, vec3_t* right = nullptr, vec3_t* up = nullptr );

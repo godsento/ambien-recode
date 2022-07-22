@@ -63,7 +63,11 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 
 			if (!origin_delta.IsZero() && game::TIME_TO_TICKS(time_difference) > 0)
 			{
-				m_player->m_vecVelocity() = origin_delta * (1.0f / time_difference);
+
+				record->m_velocity = origin_delta * (1.0f / time_difference);
+
+				// it will get overriden
+				record->m_anim_velocity = record->m_velocity;
 
 				if (m_player->m_fFlags() & FL_ONGROUND && record->m_layers[11].m_weight > 0.0f && record->m_layers[11].m_weight < 1.0f && record->m_layers[11].m_cycle > previous->m_layers[11].m_cycle)
 				{
@@ -86,19 +90,19 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 
 				if (animation_speed > 0.0f)
 				{
-					animation_speed /= m_player->m_vecVelocity().length_2d();
+					animation_speed /= record->m_anim_velocity.length_2d();
 
-					m_player->m_vecVelocity().x *= animation_speed;
-					m_player->m_vecVelocity().y *= animation_speed;
+					record->m_anim_velocity.x *= animation_speed;
+					record->m_anim_velocity.y *= animation_speed;
 				}
 
-				if (m_records.size() >= 3 && time_difference > g_csgo.m_globals->m_interval)
+				if (m_records.size() >= 3 && time_difference > g_csgo.m_globals->m_interval && !m_records[2].get()->dormant())
 				{
 					auto previous_velocity = (previous->m_origin - m_records[2].get()->m_origin) * (1.0f / time_difference);
 
 					if (!previous_velocity.IsZero() && !was_in_air)
 					{
-						auto current_direction = math::NormalizedAngle(math::rad_to_deg(atan2(m_player->m_vecVelocity().y, m_player->m_vecVelocity().x)));
+						auto current_direction = math::NormalizedAngle(math::rad_to_deg(atan2(record->m_anim_velocity.y, record->m_anim_velocity.x)));
 						auto previous_direction = math::NormalizedAngle(math::rad_to_deg(atan2(previous_velocity.y, previous_velocity.x)));
 
 						auto average_direction = current_direction - previous_direction;
@@ -107,30 +111,26 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 						auto direction_cos = cos(average_direction);
 						auto dirrection_sin = sin(average_direction);
 
-						auto velocity_speed = m_player->m_vecVelocity().length_2d();
+						auto velocity_speed = record->m_anim_velocity.length_2d();
 
-						m_player->m_vecVelocity().x = direction_cos * velocity_speed;
-						m_player->m_vecVelocity().y = dirrection_sin * velocity_speed;
+						record->m_anim_velocity.x = direction_cos * velocity_speed;
+						record->m_anim_velocity.y = dirrection_sin * velocity_speed;
 					}
 				}
 
 				if (!(m_player->m_fFlags() & FL_ONGROUND))
 				{
-
-
 					auto fixed_timing = std::clamp(time_difference, g_csgo.m_globals->m_interval, 1.0f);
-					m_player->m_vecVelocity().z -= g_csgo.sv_gravity->GetFloat() * fixed_timing * 0.5f;
+					record->m_anim_velocity.z -= g_csgo.sv_gravity->GetFloat() * fixed_timing * 0.5f;
 				}
 				else
-					m_player->m_vecVelocity().z = 0.0f;
+					record->m_anim_velocity.z = 0.0f;
 			}
 
 			m_player->m_iEFlags() &= ~0x1800;
 
-			if (m_player->m_fFlags() & FL_ONGROUND && m_player->m_vecVelocity().length() > 0.0f && record->m_layers[6].m_weight <= 0.0f)
-				m_player->m_vecVelocity() = vec3_t(0, 0, 0);
-
-			record->m_anim_velocity = m_player->m_vecAbsVelocity() = m_player->m_vecVelocity();
+			if (m_player->m_fFlags() & FL_ONGROUND && record->m_anim_velocity.length() > 0.0f && record->m_layers[6].m_weight <= 0.0f)
+				record->m_anim_velocity = vec3_t(0, 0, 0);
 
 			bool two_tick_ground = (m_player->m_fFlags() & FL_ONGROUND) && (previous->m_flags & FL_ONGROUND);
 
@@ -157,7 +157,7 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 			record->m_fake_walk = true;
 
 		if (record->m_fake_walk)
-			record->m_velocity = record->m_anim_velocity = m_player->m_vecAbsVelocity() = m_player->m_vecVelocity() = { 0.f, 0.f, 0.f };
+			record->m_velocity = record->m_anim_velocity = { 0.f, 0.f, 0.f };
 
 		// we need atleast 2 updates/records
 		// to fix these issues.
@@ -167,38 +167,36 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 
 			if (previous && !previous->valid()) {
 
-				bool _bOnGround = record->m_flags & FL_ONGROUND;
-				float _m_flTime = previous->m_sim_time + g_csgo.m_globals->m_interval;
+				// jumpfall.
+				bool bOnGround = record->m_flags & FL_ONGROUND;
+				bool bJumped = false;
+				bool bLandedOnServer = false;
+				float flLandTime = 0.f;
 
-				if (record->m_lag > 2) {
-
-					float flLandTime = 0.0f;
-					bool bJumped = false;
-					bool bLandedOnServer = false;
-					if (record->m_layers[4].m_cycle < 0.5f && (!(record->m_flags & FL_ONGROUND) || !(previous->m_flags & FL_ONGROUND))) {
-						flLandTime = record->m_sim_time - float(record->m_layers[4].m_playback_rate / record->m_layers[4].m_cycle);
-						bLandedOnServer = flLandTime >= previous->m_sim_time;
-					}
-
-					bool bOnGround = record->m_flags & FL_ONGROUND;
-
-					if (bLandedOnServer && !bJumped) {
-						if (flLandTime <= _m_flTime) {
-							bJumped = true;
-							bOnGround = true;
-						}
-						else {
-							bOnGround = previous->m_flags & FL_ONGROUND;
-						}
-					}
-
-					_bOnGround = bOnGround;
+				// magic llama code.
+				if (record->m_layers[4].m_cycle < 0.5f && (!(record->m_flags & FL_ONGROUND) || !(previous->m_flags & FL_ONGROUND))) {
+					flLandTime = record->m_sim_time - float(record->m_layers[4].m_playback_rate / record->m_layers[4].m_cycle);
+					bLandedOnServer = flLandTime >= previous->m_sim_time;
 				}
 
-				if (!_bOnGround)
-					m_player->m_fFlags() &= ~FL_ONGROUND;
-				else
+				// jump_fall fix
+				if (bLandedOnServer && !bJumped) {
+					if (flLandTime <= record->m_anim_time) {
+						bJumped = true;
+						bOnGround = true;
+					}
+					else {
+						bOnGround = previous->m_flags & FL_ONGROUND;
+					}
+				}
+
+				// do the fix. hahaha
+				if (bOnGround) {
 					m_player->m_fFlags() |= FL_ONGROUND;
+				}
+				else {
+					m_player->m_fFlags() &= ~FL_ONGROUND;
+				}
 
 				// fix crouching players.
 				// the duck amount we receive when people choke is of the last simulation.
@@ -226,12 +224,12 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 
 	// set stuff before animating.
 	m_player->m_vecOrigin() = record->m_origin;
-	//	m_player->m_vecVelocity( ) = m_player->m_vecAbsVelocity( ) = record->m_anim_velocity;
+	m_player->m_vecVelocity( ) = m_player->m_vecAbsVelocity( ) = record->m_anim_velocity;
 	m_player->m_flLowerBodyYawTarget() = record->m_body;
 
 	// EFL_DIRTY_ABSVELOCITY
 	// skip call to C_BaseEntity::CalcAbsoluteVelocity
-	m_player->m_iEFlags() &= ~0x1000;
+	m_player->m_iEFlags() &= ~(EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY);
 
 	// write potentially resolved angles.
 	m_player->m_angEyeAngles() = record->m_eye_angles;
@@ -360,16 +358,14 @@ void AimPlayer::OnNetUpdate(Player* player) {
 	}
 
 
-	if (m_records.front().get() && m_records.front().get()->m_broke_lc) {
-		while (m_records.size() > 3)
-			m_records.pop_back();
-	}
+	//while (m_records.size() > 2 && g_tickshift.m_charged)
+	//	m_records.pop_back();
 
+	while (m_records.size() > 3 && m_records.front().get() && m_records.front().get()->m_broke_lc)
+		m_records.pop_back();
 
-	if (m_records.size() > 1) {
-		if (!m_records.back().get()->valid())
-			m_records.pop_back();
-	}
+	while (m_records.size() > 1 && !m_records.back().get()->valid())
+		m_records.pop_back();
 
 	while (m_records.size() > (int)std::round(1.f / g_csgo.m_globals->m_interval))
 		m_records.pop_back();
@@ -413,11 +409,11 @@ void AimPlayer::SetupHitboxes(LagRecord* record) {
 		m_prefer_body = true;
 
 	// prefer, fake.
-	if (g_menu.main.aimbot.baim1.get(3) && !m_resolved)
+	if (g_menu.main.aimbot.baim1.get(1) && !m_resolved)
 		m_prefer_body = true;
 
 	// prefer, in air.
-	if (g_menu.main.aimbot.baim1.get(4) && !(record->m_pred_flags & FL_ONGROUND))
+	if (g_menu.main.aimbot.baim1.get(2) && !(record->m_pred_flags & FL_ONGROUND))
 		m_prefer_body = true;
 
 	bool only{ false };
@@ -536,6 +532,28 @@ void Aimbot::StripAttack( ) {
 		g_cl.m_cmd->m_buttons &= ~IN_ATTACK;
 }
 
+bool Aimbot::should_shoot() {
+
+	bool tick_shift = g_cl.m_weapon->m_flNextPrimaryAttack() <= g_csgo.m_globals->m_curtime - game::TICKS_TO_TIME(14);
+	bool tick_shift2 = g_cl.m_weapon->m_flNextPrimaryAttack() <= game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase() - 14);
+
+	bool can_shoot = g_cl.m_weapon_fire; //|| (g_cl.m_weapon->m_flNextPrimaryAttack() <= g_csgo.m_globals->m_curtime - game::TICKS_TO_TIME(14) && g_tickshift.m_double_tap);
+	bool auto_ = g_cl.m_weapon_id == G3SG1 || g_cl.m_weapon_id == SCAR20 || g_cl.m_weapon_info->m_is_full_auto;
+	// no point in aimbotting if we cannot fire this tick.
+
+	bool single = g_cl.m_weapon_id == SSG08 || g_cl.m_weapon_id == AWP;
+
+	if (single && !tick_shift && !tick_shift2 && g_tickshift.m_double_tap)
+		return false;
+
+	if (!can_shoot && !auto_)
+		return false;
+
+	if (auto_ && !can_shoot && !g_tickshift.m_charged && !tick_shift)
+		return false;
+
+	return true;
+}
 
 
 void Aimbot::think( ) {
@@ -574,10 +592,7 @@ void Aimbot::think( ) {
 	}
 #endif
 
-	bool can_shoot = g_cl.m_weapon_fire; //|| (g_cl.m_weapon->m_flNextPrimaryAttack() <= g_csgo.m_globals->m_curtime - game::TICKS_TO_TIME(14) && g_tickshift.m_double_tap);
-	bool auto_ = g_cl.m_weapon_id == G3SG1 || g_cl.m_weapon_id == SCAR20 || g_cl.m_weapon_info->m_is_full_auto;
-	// no point in aimbotting if we cannot fire this tick.
-	if (!can_shoot && !auto_)
+	if (!should_shoot())
 		return;
 
 	handle_targets();
@@ -649,10 +664,10 @@ void Aimbot::find( ) {
 
 			LagRecord *ideal = g_resolver.FindIdealRecord( t );
 
-			if (!ideal )
+			if (!ideal || g_tickshift.m_charged)
 				ideal = t->m_records.front().get();
 
-			if ( !ideal )
+			if ( !ideal || !ideal->valid() )
 				continue;
 
 			t->SetupHitboxes( ideal );
@@ -670,7 +685,7 @@ void Aimbot::find( ) {
 			}
 
 			LagRecord *last = g_resolver.FindLastRecord( t );
-			if ( !last || last == ideal || !last->valid() )
+			if ( !last || last == ideal || !last->valid() || g_tickshift.m_charged)
 				continue;
 
 			t->SetupHitboxes( last );
@@ -701,9 +716,9 @@ void Aimbot::find( ) {
 		m_record = best.record;
 
 		// set autostop shit.
-		m_stop = !( g_cl.m_buttons & IN_JUMP );
+		m_stop = ( g_cl.m_flags & FL_ONGROUND ) && g_cl.m_ground;
 
-		bool on = g_menu.main.aimbot.hitchance.get( ) && g_menu.main.config.mode.get( ) == 0;
+		bool on = g_menu.main.aimbot.hitchance_amount.get( ) && g_menu.main.config.mode.get( ) == 0;
 		bool hit = on && CheckHitchance( m_target, m_angle );
 
 		// if we can scope.
@@ -776,7 +791,7 @@ bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
 	vec3_t     start{ g_cl.m_shoot_pos }, end, fwd, right, up, dir, wep_spread;
 	float      inaccuracy, spread;
 	CGameTrace tr;
-	size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((g_menu.main.aimbot.hitchance.get() * SEED_MAX) / HITCHANCE_MAX)};
+	size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((g_menu.main.aimbot.hitchance_amount.get() * SEED_MAX) / HITCHANCE_MAX)};
 
 	// get needed directional vectors.
 	math::AngleVectors(angle, &fwd, &right, &up);
@@ -1042,11 +1057,18 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 
 	else {
 		dmg = g_menu.main.aimbot.minimal_damage.get( );
+		pendmg = g_menu.main.aimbot.penetrate_minimal_damage.get();
+
+		bool shdmg = (g_aimbot.damage_override && g_menu.main.aimbot.dmg_override_mode.get() == 1) || (g_menu.main.aimbot.dmg_override_mode.get() == 0 && g_input.GetKeyState(g_menu.main.aimbot.dmg_override.get()));
+
+
+		if (shdmg)
+			dmg = pendmg = g_menu.main.aimbot.dmg_override_amount.get();
 
 		if (dmg >= 100)
 			dmg = hp + (dmg - 100);
 
-		pendmg = g_menu.main.aimbot.penetrate_minimal_damage.get( );
+
 		if (pendmg >= 100)
 			pendmg = hp + (pendmg - 100);
 
@@ -1214,7 +1236,7 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 
 			// go for prefered hitbox instead
 			if (m_prefer_body) {
-				int two_shot = (int)round(point.m_damage * 2.f);
+				int two_shot = (int)std::round(point.m_damage * 2.f);
 				if (point.m_index > 2 && two_shot >= m_player->m_iHealth()) {
 					best_point = &point;
 					break;
@@ -1267,6 +1289,8 @@ void Aimbot::apply( ) {
 	if ( attack || attack2 ) {
 		// choke every shot.
 		*g_cl.m_packet = true;
+
+		g_movement.fired_shot = true;
 
 		if ( m_target ) {
 			// make sure to aim at un-interpolated data.

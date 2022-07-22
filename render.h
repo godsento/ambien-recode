@@ -62,6 +62,8 @@ namespace render {
 	extern Font indicator;
 
 	void init( );
+	void Draw3DFilledCircle(const vec3_t& origin, float radius, Color color);
+	void triangle(vec2_t point_one, vec2_t point_two, vec2_t point_three, Color color);
 	bool WorldToScreen( const vec3_t& world, vec2_t& screen );
 	void line( vec2_t v0, vec2_t v1, Color color );
 	void line( int x0, int y0, int x1, int y1, Color color );

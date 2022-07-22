@@ -105,6 +105,19 @@ bool CSGO::init() {
 	weapon_accuracy_shotgun_spread_patterns = m_cvar->FindVar(HASH("weapon_accuracy_shotgun_spread_patterns"));
 	net_showfragments = m_cvar->FindVar(HASH("net_showfragments"));
 
+	/*
+	// fix attachments
+	if (r_jiggle_bones->GetInt() != 0)
+		r_jiggle_bones->SetValue(0);
+
+	// foot shadows
+	if (cl_foot_contact_shadows->GetInt() != 0)
+		cl_foot_contact_shadows->SetValue(0);
+
+	// player occlusion =D
+	if (sv_occlude_players->GetInt() != 0)
+		sv_occlude_players->SetValue(0);*/
+
 	// hehe xd.
 	name->m_callbacks.RemoveAll();
 

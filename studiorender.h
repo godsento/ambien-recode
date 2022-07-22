@@ -163,102 +163,141 @@ public:
 	};
 };
 
+class IMaterialVar
+{
+public:
+	void SetVecValue(float r, float g, float b) {
+		using original_fn = void(__thiscall*)(IMaterialVar*, float, float, float);
+		return (*(original_fn**)this)[11](this, r, g, b);
+	}
+	void SetVecValue(int val) {
+		using original_fn = void(__thiscall*)(IMaterialVar*, int);
+		(*(original_fn**)this)[4](this, val);
+	}
+	void SetVecValue(float val) {
+		using original_fn = void(__thiscall*)(IMaterialVar*, float);
+		(*(original_fn**)this)[4](this, val);
+	}
+};
+
+
+
 class IMaterial {
 public:
 	enum indices : size_t {
-		GETNAME                 = 0,
-		GETTEXTUREGROUPNAME     = 1,
+		GETNAME = 0,
+		GETTEXTUREGROUPNAME = 1,
+		FINDVAR = 11,
 		INCREMENTREFERENCECOUNT = 12,
-		ALPHAMODULATE           = 27,
-		COLORMODULATE           = 28,
-		SETFLAG                 = 29,
-		GETFLAG                 = 30
+		ALPHAMODULATE = 27,
+		COLORMODULATE = 28,
+		SETFLAG = 29,
+		GETFLAG = 30,
+		ISERRORMATERIAL = 42
 	};
 
-	__forceinline const char* GetName( ) {
-		return util::get_method< const char* ( __thiscall* )( void* ) >( this, GETNAME )( this );
+	__forceinline const char* GetName() {
+		return util::get_method< const char* (__thiscall*)(void*) >(this, GETNAME)(this);
 	}
 
-	__forceinline const char* GetTextureGroupName( ) {
-		return util::get_method< const char* ( __thiscall* )( void* ) >( this, GETTEXTUREGROUPNAME )( this );
+	__forceinline const char* GetTextureGroupName() {
+		return util::get_method< const char* (__thiscall*)(void*) >(this, GETTEXTUREGROUPNAME)(this);
 	}
 
-	__forceinline void IncrementReferenceCount( ) {
-		return util::get_method< void( __thiscall* )( void* ) >( this, INCREMENTREFERENCECOUNT )( this );
+	__forceinline void IncrementReferenceCount() {
+		return util::get_method< void(__thiscall*)(void*) >(this, INCREMENTREFERENCECOUNT)(this);
 	}
 
-	__forceinline void AlphaModulate( float alpha ) {
-		return util::get_method< void( __thiscall* )( void*, float ) >( this, ALPHAMODULATE )( this, alpha );
+	__forceinline IMaterialVar* FindVar(const char* varName, bool* found, bool complain = false) {
+		return util::get_method< IMaterialVar* (__thiscall*)(void*, const char*, bool*, bool) >(this, FINDVAR)(this, varName, found, complain);
 	}
 
-	__forceinline void ColorModulate( float r, float g, float b ) {
-		return util::get_method< void( __thiscall* )( void*, float, float, float ) >( this, COLORMODULATE )( this, r, g, b );
+	IMaterialVar* find_var(const char* name)
+	{
+		bool found;
+		const auto ret = FindVar(name, &found);
+
+		if (found)
+			return ret;
+
+		return nullptr;
 	}
 
-	__forceinline void ColorModulate( Color col ) {
-		ColorModulate( col.r( ) / 255.f, col.g( ) / 255.f, col.b( ) / 255.f );
+	__forceinline void AlphaModulate(float alpha) {
+		return util::get_method< void(__thiscall*)(void*, float) >(this, ALPHAMODULATE)(this, alpha);
 	}
 
-	__forceinline void SetFlag( int fl, bool set ) {
-		return util::get_method< void( __thiscall* )( void*, int, bool ) >( this, SETFLAG )( this, fl, set );
+	__forceinline void ColorModulate(float r, float g, float b) {
+		return util::get_method< void(__thiscall*)(void*, float, float, float) >(this, COLORMODULATE)(this, r, g, b);
 	}
 
-	__forceinline bool GetFlag( int fl ) {
-		return util::get_method< bool( __thiscall* )( void*, int ) >( this, GETFLAG )( this, fl );
+	__forceinline void ColorModulate(Color col) {
+		ColorModulate(col.r() / 255.f, col.g() / 255.f, col.b() / 255.f);
+	}
+
+	__forceinline void SetFlag(int fl, bool set) {
+		return util::get_method< void(__thiscall*)(void*, int, bool) >(this, SETFLAG)(this, fl, set);
+	}
+
+	__forceinline bool GetFlag(int fl) {
+		return util::get_method< bool(__thiscall*)(void*, int) >(this, GETFLAG)(this, fl);
+	}
+
+	__forceinline bool IsErrorMaterial() {
+		return util::get_method< bool(__thiscall*)(void*) >(this, ISERRORMATERIAL)(this);
 	}
 };
 
 class IMaterialSystem {
 public:
 	enum indices : size_t {
-		OVERRIDECONFIG  = 21,
-		CREATEMATERIAL  = 83,
-		FINDMATERIAL    = 84,
-		FIRSTMATERIAL   = 86,
-		NEXTMATERIAL    = 87,
+		OVERRIDECONFIG = 21,
+		CREATEMATERIAL = 83,
+		FINDMATERIAL = 84,
+		FIRSTMATERIAL = 86,
+		NEXTMATERIAL = 87,
 		INVALIDMATERIAL = 88,
-		GETMATERIAL     = 89
+		GETMATERIAL = 89
 	};
 
 	//__forceinline IMaterial* CreateMaterial( const char* name, KeyValues* kv ) {
 	//	return util::get_method< IMaterial*( __thiscall* )( void*, const char*, KeyValues* ) >( this, CREATEMATERIAL )( this, name, kv );
 	//}
 
-	__forceinline IMaterial* FindMaterial( const char* name, char *type ) {
-		return  util::get_method< IMaterial*( __thiscall* )( void *, const char*, char*, bool, void* ) >( this, FINDMATERIAL )( this, name, type, 1, 0 );
+	__forceinline IMaterial* FindMaterial(const char* name, char* type) {
+		return  util::get_method< IMaterial* (__thiscall*)(void*, const char*, char*, bool, void*) >(this, FINDMATERIAL)(this, name, type, 1, 0);
 	}
 
-	__forceinline uint16_t FirstMaterial( ) {
-		return util::get_method< uint16_t( __thiscall* )( void* ) >( this, FIRSTMATERIAL )( this );
+	__forceinline uint16_t FirstMaterial() {
+		return util::get_method< uint16_t(__thiscall*)(void*) >(this, FIRSTMATERIAL)(this);
 	}
 
-	__forceinline uint16_t NextMaterial( uint16_t handle ) {
-		return util::get_method< uint16_t( __thiscall* )( void*, uint16_t ) >( this, NEXTMATERIAL )( this, handle );
+	__forceinline uint16_t NextMaterial(uint16_t handle) {
+		return util::get_method< uint16_t(__thiscall*)(void*, uint16_t) >(this, NEXTMATERIAL)(this, handle);
 	}
 
-	__forceinline uint16_t InvalidMaterial( ) {
-		return util::get_method< uint16_t( __thiscall* )( void* ) >( this, INVALIDMATERIAL )( this );
+	__forceinline uint16_t InvalidMaterial() {
+		return util::get_method< uint16_t(__thiscall*)(void*) >(this, INVALIDMATERIAL)(this);
 	}
 
-	__forceinline IMaterial* GetMaterial( uint16_t handle ) {
-		return util::get_method< IMaterial*( __thiscall* )( void*, uint16_t ) >( this, GETMATERIAL )( this, handle );
+	__forceinline IMaterial* GetMaterial(uint16_t handle) {
+		return util::get_method< IMaterial* (__thiscall*)(void*, uint16_t) >(this, GETMATERIAL)(this, handle);
 	}
 
 	// find material by hash.
-	__forceinline IMaterial* FindMaterial( hash32_t hash ) {
-		for( uint16_t h = FirstMaterial( ); h != InvalidMaterial( ); h = NextMaterial( h ) ) {
-			IMaterial* mat = GetMaterial( h );
-			if( !mat )
+	__forceinline IMaterial* FindMaterial(hash32_t hash) {
+		for (uint16_t h = FirstMaterial(); h != InvalidMaterial(); h = NextMaterial(h)) {
+			IMaterial* mat = GetMaterial(h);
+			if (!mat)
 				continue;
 
-			if( FNV1a::get( mat->GetName( ) ) == hash )
+			if (FNV1a::get(mat->GetName()) == hash)
 				return mat;
 		}
 
 		return nullptr;
 	}
 };
-
 class CStudioRenderContext {
 public:
 	enum indices : size_t {

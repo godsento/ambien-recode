@@ -11,6 +11,7 @@ public:
 	Slider		  scale;
 	Slider		  body_scale;
 	Slider		  minimal_damage;
+	Checkbox      scale_dmg;
 	Checkbox	  penetrate;
 	Slider		  penetrate_minimal_damage;
 
@@ -18,7 +19,6 @@ public:
 	Dropdown      zoom;
 	Checkbox      nospread;
 	Checkbox      norecoil;
-	Checkbox      hitchance;
 	Slider	      hitchance_amount;
 	Checkbox      lagfix;
 	Checkbox	  correct;
@@ -32,6 +32,8 @@ public:
 	Dropdown      dmg_override_mode;
 	Slider        dmg_override_amount;
 	Keybind       dmg_override;
+	
+	Keybind       auto_peek;
 
 public:
 	void init( ) {
@@ -72,6 +74,9 @@ public:
 		penetrate_minimal_damage.AddShowCallback( callbacks::IsPenetrationOn );
 		RegisterElement( &penetrate_minimal_damage );
 
+		scale_dmg.setup(XOR("adaptive min damage"), XOR("scale_dmg"));
+		RegisterElement(&scale_dmg);
+
 		dmg_override.setup(XOR("damage override"), XOR("damage"));
 		dmg_override.SetToggleCallback(callbacks::ToggleDamage);
 		RegisterElement(&dmg_override);
@@ -94,13 +99,8 @@ public:
 		norecoil.setup( XOR( "compensate recoil" ), XOR( "norecoil" ) );
 		RegisterElement( &norecoil, 1 );
 
-		hitchance.setup( XOR( "hit chance" ), XOR( "hitchance" ) );
-		hitchance.AddShowCallback( callbacks::IsConfigMM );
-		RegisterElement( &hitchance, 1 );
-
-		hitchance_amount.setup( "", XOR( "hitchance_amount" ), 1.f, 100.f, false, 0, 50.f, 1.f, XOR( L"%" ) );
+		hitchance_amount.setup( "hit chance", XOR( "hitchance_amount" ), 0.f, 100.f, true, 0, 50.f, 1.f, XOR( L"%" ) );
 		hitchance_amount.AddShowCallback( callbacks::IsConfigMM );
-		hitchance_amount.AddShowCallback( callbacks::IsHitchanceOn );
 		RegisterElement( &hitchance_amount, 1 );
 
 		lagfix.setup( XOR( "predict fake-lag" ), XOR( "lagfix" ) );
@@ -126,6 +126,8 @@ public:
 		double_tap.SetToggleCallback(callbacks::ToggleDoubletap);
 		RegisterElement(&double_tap, 1);
 
+		auto_peek.setup(XOR("auto peek"), XOR("auto_peek"));
+		RegisterElement(&auto_peek, 1);
 
 	}
 };
@@ -144,9 +146,7 @@ public:
 	Slider   rot_speed_stand;
 	Slider   rand_update_stand;
 	Dropdown dir_stand;
-	Slider   dir_time_stand;
 	Slider   dir_custom_stand;
-	Checkbox dir_lock;
 	Dropdown base_angle_stand;
 	Dropdown body_fake_stand;
 
@@ -157,7 +157,6 @@ public:
 	Slider   rot_speed_walk;
 	Slider   rand_update_walk;
 	Dropdown dir_walk;
-	Slider	 dir_time_walk;
 	Slider   dir_custom_walk;
 	Dropdown base_angle_walk;
 
@@ -168,10 +167,8 @@ public:
 	Slider   rot_speed_air;
 	Slider   rand_update_air;
 	Dropdown dir_air;
-	Slider   dir_time_air;
 	Slider   dir_custom_air;
 	Dropdown base_angle_air;
-	Dropdown body_fake_air;
 
 	// col 2.
 	Dropdown fake_yaw;
@@ -191,7 +188,7 @@ public:
 		enable.setup( XOR( "enable" ), XOR( "enable" ) );
 		RegisterElement( &enable );
 
-		edge.setup( XOR( "edge" ), XOR( "edge" ) );
+		edge.setup( XOR( "edge yaw" ), XOR( "edge" ) );
 		RegisterElement( &edge );
 
 		mode.setup( "", XOR( "mode" ), { XOR( "stand" ), XOR( "walk" ), XOR( "air" ) }, false );
@@ -202,7 +199,7 @@ public:
 		pitch_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
 		RegisterElement( &pitch_stand );
 
-		yaw_stand.setup( XOR( "yaw" ), XOR( "yaw_stnd" ), { XOR( "off" ), XOR( "direction" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ) } );
+		yaw_stand.setup( XOR( "yaw" ), XOR( "yaw_stnd" ), { XOR( "off" ), XOR( "direction" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ), XOR("distortion")});
 		yaw_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
 		RegisterElement( &yaw_stand );
 
@@ -226,16 +223,10 @@ public:
 		rand_update_stand.AddShowCallback( callbacks::IsStandYawRnadom );
 		RegisterElement( &rand_update_stand );
 
-		dir_stand.setup( XOR( "direction" ), XOR( "dir_stnd" ), { XOR( "auto" ), XOR( "backwards" ), XOR( "left" ), XOR( "right" ), XOR( "custom" ) } );
+		dir_stand.setup( XOR( "direction" ), XOR( "dir_stnd" ), { XOR( "freestand" ), XOR( "backwards" ), XOR( "left" ), XOR( "right" ), XOR( "custom" ) } );
 		dir_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
 		dir_stand.AddShowCallback( callbacks::HasStandYaw );
 		RegisterElement( &dir_stand );
-
-		dir_time_stand.setup( "", XOR( "dir_time_stnd" ), 0.f, 10.f, false, 0, 0.f, 1.f, XOR( L"s" ) );
-		dir_time_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
-		dir_time_stand.AddShowCallback( callbacks::HasStandYaw );
-		dir_time_stand.AddShowCallback( callbacks::IsStandDirAuto );
-		RegisterElement( &dir_time_stand );
 
 		dir_custom_stand.setup( "", XOR( "dir_custom_stnd" ), -180.f, 180.f, false, 0, 0.f, 5.f, XOR( L"°" ) );
 		dir_custom_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
@@ -243,15 +234,10 @@ public:
 		dir_custom_stand.AddShowCallback( callbacks::IsStandDirCustom );
 		RegisterElement( &dir_custom_stand );
 
-		base_angle_stand.setup( XOR( "base angle" ), XOR( "base_angle_stand" ), { XOR( "off" ), XOR( "static" ), XOR( "away crosshair" ), XOR( "away distance" ) } );
+		base_angle_stand.setup( XOR( "at targets" ), XOR( "base_angle_stand" ), { XOR( "off" ), XOR( "away crosshair" ), XOR( "away distance" ) } );
 		base_angle_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
 		base_angle_stand.AddShowCallback( callbacks::HasStandYaw );
 		RegisterElement( &base_angle_stand );
-
-		dir_lock.setup( XOR( "lock direction" ), XOR( "dir_lock" ) );
-		dir_lock.AddShowCallback( callbacks::IsAntiAimModeStand );
-		dir_lock.AddShowCallback( callbacks::HasStandYaw );
-		RegisterElement( &dir_lock );
 
 		body_fake_stand.setup( XOR( "fake body" ), XOR( "body_fake_stnd" ), { XOR( "off" ), XOR( "left" ), XOR( "right" ), XOR( "opposite" ), XOR( "z" ) } );
 		body_fake_stand.AddShowCallback( callbacks::IsAntiAimModeStand );
@@ -263,7 +249,7 @@ public:
 		pitch_walk.AddShowCallback( callbacks::IsAntiAimModeWalk );
 		RegisterElement( &pitch_walk );
 
-		yaw_walk.setup( XOR( "yaw" ), XOR( "yaw_walk" ), { XOR( "off" ), XOR( "direction" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ) } );
+		yaw_walk.setup( XOR( "yaw" ), XOR( "yaw_walk" ), { XOR( "off" ), XOR( "direction" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ), XOR("distortion") } );
 		yaw_walk.AddShowCallback( callbacks::IsAntiAimModeWalk );
 		RegisterElement( &yaw_walk );
 
@@ -287,16 +273,10 @@ public:
 		rand_update_walk.AddShowCallback( callbacks::IsWalkYawRandom );
 		RegisterElement( &rand_update_walk );
 
-		dir_walk.setup( XOR( "direction" ), XOR( "dir_walk" ), { XOR( "auto" ), XOR( "backwards" ), XOR( "left" ), XOR( "right" ), XOR( "custom" ) } );
+		dir_walk.setup( XOR( "direction" ), XOR( "dir_walk" ), { XOR( "freestand" ), XOR( "backwards" ), XOR( "left" ), XOR( "right" ), XOR( "custom" ) } );
 		dir_walk.AddShowCallback( callbacks::IsAntiAimModeWalk );
 		dir_walk.AddShowCallback( callbacks::WalkHasYaw );
 		RegisterElement( &dir_walk );
-
-		dir_time_walk.setup( "", XOR( "dir_time_walk" ), 0.f, 10.f, false, 0, 0.f, 1.f, XOR( L"s" ) );
-		dir_time_walk.AddShowCallback( callbacks::IsAntiAimModeWalk );
-		dir_time_walk.AddShowCallback( callbacks::WalkHasYaw );
-		dir_time_walk.AddShowCallback( callbacks::IsWalkDirAuto );
-		RegisterElement( &dir_time_walk );
 
 		dir_custom_walk.setup( "", XOR( "dir_custom_walk" ), -180.f, 180.f, false, 0, 0.f, 5.f, XOR( L"°" ) );
 		dir_custom_walk.AddShowCallback( callbacks::IsAntiAimModeWalk );
@@ -304,7 +284,7 @@ public:
 		dir_custom_walk.AddShowCallback( callbacks::IsWalkDirCustom );
 		RegisterElement( &dir_custom_walk );
 
-		base_angle_walk.setup( XOR( "base angle" ), XOR( "base_angle_walk" ), { XOR( "off" ), XOR( "static" ), XOR( "away crosshair" ), XOR( "away distance" ) } );
+		base_angle_walk.setup( XOR( "at targets" ), XOR( "base_angle_walk" ), { XOR( "off" ), XOR( "away crosshair" ), XOR( "away distance" ) } );
 		base_angle_walk.AddShowCallback( callbacks::IsAntiAimModeWalk );
 		base_angle_walk.AddShowCallback( callbacks::WalkHasYaw );
 		RegisterElement( &base_angle_walk );
@@ -314,7 +294,7 @@ public:
 		pitch_air.AddShowCallback( callbacks::IsAntiAimModeAir );
 		RegisterElement( &pitch_air );
 
-		yaw_air.setup( XOR( "yaw" ), XOR( "yaw_air" ), { XOR( "off" ), XOR( "direction" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ) } );
+		yaw_air.setup( XOR( "yaw" ), XOR( "yaw_air" ), { XOR( "off" ), XOR( "direction" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ), XOR("distortion") } );
 		yaw_air.AddShowCallback( callbacks::IsAntiAimModeAir );
 		RegisterElement( &yaw_air );
 
@@ -338,16 +318,10 @@ public:
 		rand_update_air.AddShowCallback( callbacks::IsAirYawRandom );
 		RegisterElement( &rand_update_air );
 
-		dir_air.setup( XOR( "direction" ), XOR( "dir_air" ), { XOR( "auto" ), XOR( "backwards" ), XOR( "left" ), XOR( "right" ), XOR( "custom" ) } );
+		dir_air.setup( XOR( "direction" ), XOR( "dir_air" ), { XOR( "freestand" ), XOR( "backwards" ), XOR( "left" ), XOR( "right" ), XOR( "custom" ) } );
 		dir_air.AddShowCallback( callbacks::IsAntiAimModeAir );
 		dir_air.AddShowCallback( callbacks::AirHasYaw );
 		RegisterElement( &dir_air );
-
-		dir_time_air.setup( "", XOR( "dir_time_air" ), 0.f, 10.f, false, 0, 0.f, 1.f, XOR( L"s" ) );
-		dir_time_air.AddShowCallback( callbacks::IsAntiAimModeAir );
-		dir_time_air.AddShowCallback( callbacks::AirHasYaw );
-		dir_time_air.AddShowCallback( callbacks::IsAirDirAuto );
-		RegisterElement( &dir_time_air );
 
 		dir_custom_air.setup( "", XOR( "dir_custom_air" ), -180.f, 180.f, false, 0, 0.f, 5.f, XOR( L"°" ) );
 		dir_custom_air.AddShowCallback( callbacks::IsAntiAimModeAir );
@@ -355,15 +329,10 @@ public:
 		dir_custom_air.AddShowCallback( callbacks::IsAirDirCustom );
 		RegisterElement( &dir_custom_air );
 
-		base_angle_air.setup( XOR( "base angle" ), XOR( "base_angle_air" ), { XOR( "off" ), XOR( "static" ), XOR( "away crosshair" ), XOR( "away distance" ) } );
+		base_angle_air.setup( XOR( "at targets" ), XOR( "base_angle_air" ), { XOR( "off" ), XOR( "away crosshair" ), XOR( "away distance" ) } );
 		base_angle_air.AddShowCallback( callbacks::IsAntiAimModeAir );
 		base_angle_air.AddShowCallback( callbacks::AirHasYaw );
 		RegisterElement( &base_angle_air );
-
-		body_fake_air.setup( XOR( "fake body" ), XOR( "body_fake_air" ), { XOR( "off" ), XOR( "left" ), XOR( "right" ), XOR( "opposite" ) } );
-		body_fake_air.AddShowCallback( callbacks::IsAntiAimModeAir );
-		body_fake_air.AddShowCallback( callbacks::AirHasYaw );
-		RegisterElement( &body_fake_air );
 
 		// col2.
 		fake_yaw.setup( XOR( "fake yaw" ), XOR( "fake_yaw" ), { XOR( "off" ), XOR( "default" ), XOR( "relative" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ), XOR( "local view" ) } );
@@ -397,33 +366,48 @@ public:
 
 class PlayersTab : public Tab {
 public:
-	MultiDropdown box;
+
+	Dropdown visuals_mode;
+	Checkbox box;
 	Colorpicker   box_enemy;
+	Checkbox name;
+
+	Checkbox box_tm;
 	Colorpicker   box_friendly;
+	Checkbox name_tm;
+
 	Checkbox      dormant;
 	Checkbox      offscreen;
 	Colorpicker   offscreen_color;
-	MultiDropdown name;
+
 	Colorpicker   name_color;
-	MultiDropdown health;
+	Colorpicker   teammate_name_color;
+	Checkbox health;
+	Checkbox health_teammates;
 	MultiDropdown flags_enemy;
 	MultiDropdown flags_friendly;
-	MultiDropdown weapon;
+	Checkbox weapon;
+	Checkbox weapon_teammates;
 	Dropdown      weapon_mode;
 	Checkbox      ammo;
-	Colorpicker   ammo_color;		
+	Checkbox      ammo_friendly;
+	Colorpicker   ammo_color;
+	Colorpicker   ammo_color_friendly;
 	Checkbox      lby_update;
 	Colorpicker   lby_update_color;
 
 	// col2.
-	MultiDropdown skeleton;
+	Checkbox skeleton;
+	Checkbox skeleton_tm;
 	Colorpicker   skeleton_enemy;
 	Colorpicker   skeleton_friendly;
 
-	MultiDropdown glow;
+	Checkbox glow;
+	Checkbox glow_tm;
 	Colorpicker   glow_enemy;
 	Colorpicker   glow_friendly;
 	Slider        glow_blend;
+
 	MultiDropdown chams_enemy;
 	Colorpicker   chams_enemy_vis;
 	Colorpicker   chams_enemy_invis;
@@ -431,136 +415,275 @@ public:
 	Checkbox      chams_enemy_history;
 	Colorpicker   chams_enemy_history_col;
 	Slider        chams_enemy_history_blend;
+	Dropdown      enemychamstype;
+
 	MultiDropdown chams_friendly;
 	Colorpicker   chams_friendly_vis;
 	Colorpicker   chams_friendly_invis;
 	Slider        chams_friendly_blend;
+	Dropdown      friendchamstype;
+
+
 	Checkbox      chams_local;
 	Colorpicker   chams_local_col;
 	Slider        chams_local_blend;
 	Checkbox      chams_local_scope;
+	Checkbox      chams_local_overlay;
+	Colorpicker   chams_local_overlay_color;
+	Dropdown      overlaychamstype;
+	Dropdown      localchamstype;
+
+
+
+
+
+	Dropdown chams_mode;
+
+
 
 public:
-	void init( ) {
-		SetTitle(XOR("players"), "player visuals.");
+	void init() {
+		SetTitle(("players"), "player visuals.");
 
-		box.setup( XOR( "boxes" ), XOR( "box" ), { XOR( "enemy" ), XOR( "friendly" ) } );
-		RegisterElement( &box );
+		visuals_mode.setup(("visuals mode"), ("visuals_mode"), { ("enemy"), ("friendly") });
+		RegisterElement(&visuals_mode);
 
-		box_enemy.setup( XOR( "box enemy color" ), XOR( "box_enemy" ), { 150, 200, 60 } );
-		RegisterElement( &box_enemy );
+		chams_mode.setup(("chams mode"), ("hams_mode"), { ("others"), ("local") });
+		RegisterElement(&chams_mode, 1);
 
-		box_friendly.setup( XOR( "box friendly color" ), XOR( "box_friendly" ), { 255, 200, 0 } );
-		RegisterElement( &box_friendly );
+		box.setup(("enemy bounding boxes"), ("box"));
+		box.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&box);
 
-		dormant.setup( XOR( "dormant enemies" ), XOR( "dormant" ) );
-		RegisterElement( &dormant );
+		box_enemy.setup(("box enemy color"), ("box_enemy"), { 150, 200, 60 });
+		box_enemy.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&box_enemy);
 
-		offscreen.setup( XOR( "enemy offscreen esp" ), XOR( "offscreen" ) );
-		RegisterElement( &offscreen );
+		box_tm.setup(("teammate bounding boxes"), ("box_tm"));
+		box_tm.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&box_tm);
 
-		offscreen_color.setup( XOR( "offscreen esp color" ), XOR( "offscreen_color" ), colors::white );
-		RegisterElement( &offscreen_color );
+		box_friendly.setup(("box friendly color"), ("box_friendly"), { 255, 200, 0 });
+		box_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&box_friendly);
 
-		name.setup( XOR( "name" ), XOR( "name" ), { XOR( "enemy" ), XOR( "friendly" ) } );
-		RegisterElement( &name );
+		dormant.setup(("dormant enemies"), ("dormant"));
+		dormant.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&dormant);
 
-		name_color.setup( XOR( "name color" ), XOR( "name_color" ), colors::white );
-		RegisterElement( &name_color );
+		offscreen.setup(("enemy offscreen esp"), ("offscreen"));
+		offscreen.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&offscreen);
 
-		health.setup( XOR( "health" ), XOR( "health" ), { XOR( "enemy" ), XOR( "friendly" ) } );
-		RegisterElement( &health );
+		offscreen_color.setup(("offscreen esp color"), ("offscreen_color"), colors::white);
+		offscreen_color.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&offscreen_color);
 
-		flags_enemy.setup( XOR( "flags enemy" ), XOR( "flags_enemy" ), { XOR( "money" ), XOR( "armor" ), XOR( "scoped" ), XOR( "flashed" ), XOR( "reloading" ), XOR( "bomb" ) } );
-		RegisterElement( &flags_enemy );
+		name.setup(("name"), ("name"));
+		name.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&name);
 
-		flags_friendly.setup( XOR( "flags friendly" ), XOR( "flags_friendly" ), { XOR( "money" ), XOR( "armor" ), XOR( "scoped" ), XOR( "flashed" ), XOR( "reloading" ), XOR( "bomb" ) } );
-		RegisterElement( &flags_friendly );
+		name_tm.setup("teammate name", "name_tmz");
+		name_tm.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&name_tm);
 
-		weapon.setup( XOR( "weapon" ), XOR( "weapon" ), { XOR( "enemy" ), XOR( "friendly" ) } );
-		RegisterElement( &weapon );
+		name_color.setup(("name color"), ("name_color"), colors::white);
+		name_color.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&name_color);
 
-		weapon_mode.setup( "", XOR( "weapon_mode" ), { XOR( "text" ), XOR( "icon" ) }, false );
-		RegisterElement( &weapon_mode );
+		teammate_name_color.setup(("teammate name"), ("name_colorz"), colors::white);
+		teammate_name_color.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&name_color);
 
-		ammo.setup( XOR( "ammo" ), XOR( "ammo" ) );
-		RegisterElement( &ammo );
+		health.setup(("health bar"), ("health"));
+		health.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&health);
 
-		ammo_color.setup( XOR( "color" ), XOR( "ammo_color" ), colors::burgundy );
-		RegisterElement( &ammo_color );	
-		
-		lby_update.setup( XOR( "lby update" ), XOR( "lby_update" ) );
-		RegisterElement( &lby_update );
+		health_teammates.setup(("teammate health bar"), ("health_teammates"));
+		health_teammates.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&health_teammates);
 
-		lby_update_color.setup( XOR( "color" ), XOR( "lby_update_color" ), colors::orange );
-		RegisterElement( &lby_update_color );
+		flags_enemy.setup(("flags enemy"), ("flags_enemy"), { ("money"), ("armor"), ("scoped"), ("flashed"), ("reloading"), ("bomb") });
+		flags_enemy.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&flags_enemy);
+
+		flags_friendly.setup(("flags friendly"), ("flags_friendly"), { ("money"), ("armor"), ("scoped"), ("flashed"), ("reloading"), ("bomb") });
+		flags_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&flags_friendly);
+
+		weapon.setup(("weapon"), ("weapon"));
+		weapon.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&weapon);
+
+		weapon_teammates.setup(("teammate weapon"), ("weapon_friendly"));
+		weapon_teammates.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&weapon_teammates);
+
+		weapon_mode.setup("", ("weapon_mode"), { ("text"), ("icon") }, false);
+		RegisterElement(&weapon_mode);
+
+		ammo.setup(("ammo"), ("ammo"));
+		ammo.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&ammo);
+
+		ammo_friendly.setup(("teammate ammo"), ("ammo_friendly"));
+		ammo_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&ammo_friendly);
+
+		ammo_color.setup(("color"), ("ammo_color"), colors::burgundy);
+		ammo_color.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&ammo_color);
+
+		ammo_color_friendly.setup(("color"), ("ammo_color_friendly"), colors::burgundy);
+		ammo_color_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&ammo_color_friendly);
+
+		lby_update.setup(("lby update"), ("lby_update"), false);
+		RegisterElement(&lby_update);
+
+		lby_update_color.setup(("lby update"), ("lby_update_color"), colors::orange);
+		RegisterElement(&lby_update_color);
 
 		// col2.
-		skeleton.setup( XOR( "skeleton" ), XOR( "skeleton" ), { XOR( "enemy" ), XOR( "friendly" ) } );
-		RegisterElement( &skeleton, 1 );
+		skeleton.setup(("skeleton"), ("skeleton"));
+		skeleton.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&skeleton);
 
-		skeleton_enemy.setup( XOR( "enemy color" ), XOR( "skeleton_enemy" ), { 255, 255, 255 } );
-		RegisterElement( &skeleton_enemy, 1 );
+		skeleton_tm.setup(("teammate skeleton"), ("skeleton_tm"));
+		skeleton_tm.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&skeleton_tm);
 
-		skeleton_friendly.setup( XOR( "friendly color" ), XOR( "skeleton_friendly" ), { 255, 255, 255 } );
-		RegisterElement( &skeleton_friendly, 1 );
+		skeleton_enemy.setup(("enemy color"), ("skeleton_enemy"), { 255, 255, 255 });
+		skeleton_enemy.AddShowCallback(callbacks::EnemyVisuals);
+		RegisterElement(&skeleton_enemy);
 
-		glow.setup( XOR( "glow" ), XOR( "glow" ), { XOR( "enemy" ), XOR( "friendly" ) } );
-		RegisterElement( &glow, 1 );
+		skeleton_friendly.setup(("friendly color"), ("skeleton_friendly"), { 255, 255, 255 });
+		skeleton_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&skeleton_friendly);
 
-		glow_enemy.setup( XOR( "enemy color" ), XOR( "glow_enemy" ), { 150, 200, 60 } );
-		RegisterElement( &glow_enemy, 1 );
+		glow.setup(("glow"), ("glow"));
+		glow.AddShowCallback(callbacks::EnemyVisuals);
+		glow.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&glow, 1);
 
-		glow_friendly.setup( XOR( "friendly color" ), XOR( "glow_friendly" ), { 150, 200, 60 } );
-		RegisterElement( &glow_friendly, 1 );
 
-		glow_blend.setup( "", XOR( "glow_blend" ), 10.f, 100.f, false, 0, 60.f, 1.f, XOR( L"%" ) );
-		RegisterElement( &glow_blend, 1 );
+		glow_tm.setup(("teammate glow"), ("glow_tm"));
+		glow_tm.AddShowCallback(callbacks::TeammateVisuals);
+		glow_tm.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&glow_tm, 1);
 
-		chams_enemy.setup( XOR( "chams enemy" ), XOR( "chams_enemy" ), { XOR( "visible" ), XOR( "invisible" ) } );
-		RegisterElement( &chams_enemy, 1 );
+		glow_enemy.setup(("enemy color"), ("glow_enemy"), { 150, 200, 60 });
+		glow_enemy.AddShowCallback(callbacks::EnemyVisuals);
+		glow_enemy.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&glow_enemy, 1);
 
-		chams_enemy_vis.setup( XOR( "color visible" ), XOR( "chams_enemy_vis" ), { 150, 200, 60 } );
-		RegisterElement( &chams_enemy_vis, 1 );
+		glow_friendly.setup(("friendly color"), ("glow_friendly"), { 150, 200, 60 });
+		glow_friendly.AddShowCallback(callbacks::ChamsOther);
+		glow_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		RegisterElement(&glow_friendly, 1);
 
-		chams_enemy_invis.setup( XOR( "color invisible" ), XOR( "chams_enemy_invis" ), { 60, 180, 225 } );
-		RegisterElement( &chams_enemy_invis, 1 );
+		glow_blend.setup("", ("glow_blend"), 0.f, 100.f, false, 0, 60.f, 1.f, XOR(L"%"));
+		glow_blend.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&glow_blend, 1);
 
-		chams_enemy_blend.setup( "", XOR( "chams_enemy_blend" ), 10.f, 100.f, false, 0, 100.f, 1.f, XOR( L"%" ) );
-		RegisterElement( &chams_enemy_blend, 1 );
+		chams_enemy.setup(("chams enemy"), ("chams_enemy"), { ("visible"), ("invisible") });
+		chams_enemy.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy, 1);
 
-		chams_enemy_history.setup( XOR( "chams history" ), XOR( "chams_history" ) );
-		RegisterElement( &chams_enemy_history, 1 );
+		chams_enemy_vis.setup(("color visible"), ("chams_enemy_vis"), { 150, 200, 60 });
+		chams_enemy_vis.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_vis.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_vis, 1);
 
-		chams_enemy_history_col.setup( XOR( "color" ), XOR( "chams_history_col" ), { 255, 255, 200 } );
-		RegisterElement( &chams_enemy_history_col, 1 );
+		chams_enemy_invis.setup(("color invisible"), ("chams_enemy_invis"), { 60, 180, 225 });
+		chams_enemy_invis.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_invis.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_invis, 1);
 
-		chams_enemy_history_blend.setup( "", XOR( "chams_history_blend" ), 10.f, 100.f, false, 0, 100.f, 1.f, XOR( L"%" ) );
-		RegisterElement( &chams_enemy_history_blend, 1 );
+		chams_enemy_blend.setup("", ("chams_enemy_blend"), 0.f, 100.f, false, 0, 100.f, 1.f, XOR(L"%"));
+		chams_enemy_blend.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_blend.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_blend, 1);
 
-		chams_friendly.setup( XOR( "chams friendly" ), XOR( "chams_friendly" ), { XOR( "visible" ), XOR( "invisible" ) } );
-		RegisterElement( &chams_friendly, 1 );
+		enemychamstype.setup(XOR("enemy chams type"), XOR("chamstype"), { XOR("textured"), XOR("flat"), XOR("metallic"), XOR("glow"), XOR("wireframe"), XOR("metallic2"), "onetap glow" });
+		enemychamstype.AddShowCallback(callbacks::EnemyVisuals);
+		enemychamstype.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&enemychamstype, 1);
 
-		chams_friendly_vis.setup( XOR( "color visible" ), XOR( "chams_friendly_vis" ), { 255, 200, 0 } );
-		RegisterElement( &chams_friendly_vis, 1 );
 
-		chams_friendly_invis.setup( XOR( "color invisible" ), XOR( "chams_friendly_invis" ), { 255, 50, 0 } );
-		RegisterElement( &chams_friendly_invis, 1 );
+		chams_enemy_history.setup(("chams history"), ("chams_history"));
+		chams_enemy_history.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_history.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_history, 1);
 
-		chams_friendly_blend.setup( "", XOR( "chams_friendly_blend" ), 10.f, 100.f, false, 0, 100.f, 1.f, XOR( L"%" ) );
-		RegisterElement( &chams_friendly_blend, 1 );
+		chams_enemy_history_col.setup(("color"), ("chams_history_col"), { 255, 255, 200 });
+		chams_enemy_history_col.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_history_col.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_history_col, 1);
 
-		chams_local.setup( XOR( "chams local" ), XOR( "chams_local" ) );
-		RegisterElement( &chams_local, 1 );
+		chams_enemy_history_blend.setup("", ("chams_history_blend"), 0.f, 100.f, false, 0, 100.f, 1.f, XOR(L"%"));
+		chams_enemy_history_blend.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_history_blend.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_history_blend, 1);
 
-		chams_local_col.setup( XOR( "color" ), XOR( "chams_local_col" ), { 255, 255, 200 } );
-		RegisterElement( &chams_local_col, 1 );
+		chams_friendly.setup(("chams friendly"), ("chams_friendly"), { ("visible"), ("invisible") });
+		chams_friendly.AddShowCallback(callbacks::TeammateVisuals);
+		chams_friendly.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_friendly, 1);
 
-		chams_local_blend.setup( "", XOR( "chams_local_blend" ), 10.f, 100.f, false, 0, 100.f, 1.f, XOR( L"%" ) );
-		RegisterElement( &chams_local_blend, 1 );
+		chams_friendly_vis.setup(("color visible"), ("chams_friendly_vis"), { 255, 200, 0 });
+		chams_friendly_vis.AddShowCallback(callbacks::TeammateVisuals);
+		chams_friendly_vis.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_friendly_vis, 1);
 
-		chams_local_scope.setup( XOR( "blend when scoped" ), XOR( "chams_local_scope" ) );
-		RegisterElement( &chams_local_scope, 1 );
+		chams_friendly_invis.setup(("color invisible"), ("chams_friendly_invis"), { 255, 50, 0 });
+		chams_friendly_invis.AddShowCallback(callbacks::TeammateVisuals);
+		chams_friendly_invis.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_friendly_invis, 1);
+
+		chams_friendly_blend.setup("", ("chams_friendly_blend"), 0.f, 100.f, false, 0, 100.f, 1.f, XOR(L"%"));
+		chams_friendly_blend.AddShowCallback(callbacks::TeammateVisuals);
+		chams_friendly_blend.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_friendly_blend, 1);
+
+		friendchamstype.setup(XOR("teammate chams type"), XOR("chamstype11"), { XOR("textured"), XOR("flat"), XOR("metallic"), XOR("glow"), XOR("wireframe"), XOR("metallic2"), "onetap glow" });
+		friendchamstype.AddShowCallback(callbacks::TeammateVisuals);
+		friendchamstype.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&friendchamstype, 1);
+
+
+		chams_local.setup(("chams local"), ("chams_local"));
+		chams_local.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&chams_local, 1);
+
+		chams_local_col.setup(("color"), ("chams_local_col"), { 255, 255, 200 });
+		chams_local_col.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&chams_local_col, 1);
+
+		chams_local_blend.setup("", ("chams_local_blend"), 0.f, 100.f, false, 0, 100.f, 1.f, XOR(L"%"));
+		chams_local_blend.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&chams_local_blend, 1);
+
+		chams_local_scope.setup(("blend when scoped"), ("chams_local_scope"));
+		chams_local_scope.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&chams_local_scope, 1);
+
+		localchamstype.setup(XOR("local chams type"), XOR("chamstype1"), { XOR("textured"), XOR("flat"), XOR("metallic"), XOR("skeet glow"), XOR("wireframe"), XOR("metallic2"), "onetap glow" });
+		localchamstype.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&localchamstype, 1);
+
+		chams_local_overlay.setup(XOR("local overlay"), XOR("chams_local_overlay"));
+		chams_local_overlay.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&chams_local_overlay, 1);
+
+		chams_local_overlay_color.setup(XOR("color"), XOR("chams_local_color"), { 255, 0, 0 });
+		chams_local_overlay_color.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&chams_local_overlay_color, 1);
+
+		overlaychamstype.setup(XOR("overlay type"), XOR("chamstype111"), { XOR("animated wireframe"), XOR("animated wireframe 2"), XOR("animated wireframe 3"), "onetap glow", "skeet glow" });
+		overlaychamstype.AddShowCallback(callbacks::ChamsLocal);
+		RegisterElement(&overlaychamstype, 1);
 	}
 };
 

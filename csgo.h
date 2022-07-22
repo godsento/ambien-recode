@@ -116,7 +116,9 @@ public:
 	ConVar *hud_scaling;
 	ConVar *sv_clip_penetration_traces_to_players;
 	ConVar *weapon_accuracy_shotgun_spread_patterns;
-
+	ConVar* sv_occlude_players;
+	ConVar* r_jiggle_bones;
+	ConVar* cl_foot_contact_shadows;
 public:
 	// functions.
 	GetGlowObjectManager_t   GetGlowObjectManager;

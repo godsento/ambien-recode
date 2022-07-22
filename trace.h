@@ -204,6 +204,8 @@ public:
 	__forceinline bool hit( ) const {
 		return m_fraction < 1.f || m_allsolid || m_startsolid;
 	}
+	bool DidHitWorld();
+	bool DidHitNonWorldEntity();
 };
 
 class Ray {

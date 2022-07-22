@@ -19,6 +19,8 @@ public:
 	LagRecord* FindIdealRecord( AimPlayer* data );
 	LagRecord* FindLastRecord( AimPlayer* data );
 
+	void PredictBodyUpdates(Player* player, LagRecord* record);
+
 	void OnBodyUpdate( Player* player, float value );
 	float GetAwayAngle( LagRecord* record );
 
@@ -32,6 +34,7 @@ public:
 	void ResolveAir( AimPlayer* data, LagRecord* record );
 
 	void AirNS( AimPlayer* data, LagRecord* record );
+	void anti_freestand(AimPlayer* data, LagRecord* record);
 	void ResolvePoses( Player* player, LagRecord* record );
 
 public:

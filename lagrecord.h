@@ -1,5 +1,5 @@
 #pragma once
-
+#include "shifting.h"
 // pre-declare.
 class LagRecord;
 
@@ -14,31 +14,11 @@ public:
 
 public:
 	__forceinline void store( Player* player ) {
-		// get bone cache ptr.
-		CBoneCache* cache = &player->m_BoneCache( );
 
-		// store bone data.
-		m_bones      = cache->m_pCachedBones;
-		m_bone_count = cache->m_CachedBoneCount;
-		m_origin     = player->m_vecOrigin( );
-		m_mins       = player->m_vecMins( );
-		m_maxs       = player->m_vecMaxs( );
-		m_abs_origin = player->GetAbsOrigin( );
-		m_abs_ang    = player->GetAbsAngles( );
 	}
 
 	__forceinline void restore( Player* player ) {
-		// get bone cache ptr.
-		CBoneCache* cache = &player->m_BoneCache( );
 
-		cache->m_pCachedBones    = m_bones;
-		cache->m_CachedBoneCount = m_bone_count;
-
-		player->m_vecOrigin( ) = m_origin;
-		player->m_vecMins( )   = m_mins;
-		player->m_vecMaxs( )   = m_maxs;
-		player->SetAbsAngles( m_abs_ang );
-		player->SetAbsOrigin( m_origin );
 	}
 };
 
@@ -183,18 +163,7 @@ public:
 
 	// function: writes current record to bone cache.
 	__forceinline void cache( ) {
-		// get bone cache ptr.
-		CBoneCache* cache = &m_player->m_BoneCache( );
 
-		cache->m_pCachedBones    = m_bones;
-		cache->m_CachedBoneCount = 128;
-
-		m_player->m_vecOrigin( ) = m_pred_origin;
-		m_player->m_vecMins( )   = m_mins;
-		m_player->m_vecMaxs( )   = m_maxs;
-
-		m_player->SetAbsAngles( m_abs_ang );
-		m_player->SetAbsOrigin( m_pred_origin );
 	}
 
 	__forceinline bool dormant( ) {
@@ -232,6 +201,6 @@ public:
 
 		// calculate difference between tick sent by player and our latency based tick.
 		// ensure this record isn't too old.
-		return std::abs( correct - ( curtime - m_sim_time ) ) <= 0.2f;
+		return std::abs( correct - ( curtime - m_sim_time ) ) <= g_cl.max_bt;
 	}
 };

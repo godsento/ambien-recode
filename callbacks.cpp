@@ -97,7 +97,7 @@ bool callbacks::IsFovOn( ) {
 }
 
 bool callbacks::IsHitchanceOn( ) {
-	return g_menu.main.aimbot.hitchance.get( );
+	return false;
 }
 
 bool callbacks::IsPenetrationOn( ) {
@@ -125,7 +125,7 @@ bool callbacks::IsStandYawJitter( ) {
 }
 
 bool callbacks::IsStandYawRotate( ) {
-	return g_menu.main.antiaim.yaw_stand.get( ) == 3;
+	return (g_menu.main.antiaim.yaw_stand.get() == 3 || g_menu.main.antiaim.yaw_stand.get() == 5);
 }
 
 bool callbacks::IsStandYawRnadom( ) {
@@ -153,7 +153,7 @@ bool callbacks::IsWalkYawJitter( ) {
 }
 
 bool callbacks::IsWalkYawRotate( ) {
-	return g_menu.main.antiaim.yaw_walk.get( ) == 3;
+	return (g_menu.main.antiaim.yaw_walk.get() == 3 || g_menu.main.antiaim.yaw_walk.get() == 5);
 }
 
 bool callbacks::IsWalkYawRandom( ) {
@@ -181,7 +181,24 @@ bool callbacks::IsAirYawJitter( ) {
 }
 
 bool callbacks::IsAirYawRotate( ) {
-	return g_menu.main.antiaim.yaw_air.get( ) == 3;
+	return (g_menu.main.antiaim.yaw_air.get( ) == 3 || g_menu.main.antiaim.yaw_air.get() == 5);
+}
+
+bool callbacks::TeammateVisuals() {
+	return g_menu.main.players.visuals_mode.get() == 1;
+}
+
+bool callbacks::EnemyVisuals() {
+	return g_menu.main.players.visuals_mode.get() == 0;
+}
+
+bool callbacks::ChamsOther() {
+	return g_menu.main.players.chams_mode.get() == 0;
+}
+
+
+bool callbacks::ChamsLocal() {
+	return g_menu.main.players.chams_mode.get() == 1;
 }
 
 bool callbacks::IsAirYawRandom( ) {

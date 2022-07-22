@@ -39,6 +39,7 @@ public:
 	void OnPaint( );
 	void UnlockHiddenConvars();
 	void OnMapload( );
+	void MouseFix(CUserCmd* cmd);
 	void OnTick( CUserCmd* cmd );
 
 	// debugprint function.
@@ -48,6 +49,10 @@ public:
 	bool CanFireWeapon( );
 	void UpdateRevolverCock( );
 	void UpdateIncomingSequences( );
+
+	int get_fps() {
+		return (int)std::round(1.f / g_csgo.m_globals->m_frametime);
+	}
 
 public:
 	// local player variables.
@@ -117,6 +122,9 @@ public:
 	
 	// hack username.
 	std::string m_user;
+	bool m_pressing_move;
+	float max_bt;
+	int  fixed_tickbase;
 };
 
 extern Client g_cl;

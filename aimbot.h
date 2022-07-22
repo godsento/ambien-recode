@@ -76,6 +76,11 @@ public:
 
 	float m_last_freestand_scan;
 	bool  m_prefer_body;
+	float m_last_shoot_time;
+	bool  m_predict;
+
+	CGameTrace tr_right;
+	CGameTrace tr_left;
 
 public:
 	void UpdateAnimations( LagRecord* record );
@@ -192,6 +197,7 @@ public:
 	// aimbot.
 	void init( );
 	void StripAttack( );
+	bool should_shoot();
 	void think( );
 	void find( );
 	bool CheckHitchance( Player* player, const ang_t& angle );
@@ -199,6 +205,7 @@ public:
 	void apply( );
 	void NoSpread( );
 	void handle_targets();
+
 
 	// knifebot.
 	void knife( );

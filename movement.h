@@ -14,12 +14,15 @@ public:
 	float  m_circle_yaw;
 	bool   m_invert;
 
+	bool fired_shot;
+	vec3_t start_position = vec3_t(0.0f, 0.0f, 0.0f);
 public:
 	void JumpRelated( );
 	void Strafe( );
 	void DoPrespeed( );
 	bool GetClosestPlane( vec3_t& plane );
 	bool WillCollide( float time, float step );
+	void AutoPeek(CUserCmd* cmd, float wish_yaw);
 	void FixMove( CUserCmd* cmd, const ang_t& old_angles );
 	void AutoPeek( );
 	void QuickStop( );
