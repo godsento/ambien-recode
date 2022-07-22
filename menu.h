@@ -703,6 +703,7 @@ public:
 	Checkbox      enemy_radar;
 
 	// col2.
+	MultiDropdown removals;
 	Checkbox      novisrecoil;
 	Checkbox      nosmoke;
 	Checkbox      nofog;
@@ -714,6 +715,7 @@ public:
 	Checkbox      viewmodel_fov;
 	Slider        viewmodel_fov_amt;
 	Checkbox      spectators;
+	Dropdown      spectators_mode;
 	Checkbox      force_xhair;
 	Checkbox      spread_xhair;
 	Colorpicker   spread_xhair_col;
@@ -770,20 +772,9 @@ public:
 		RegisterElement( &enemy_radar );
 
 		// col2.
-		novisrecoil.setup( XOR( "remove visual recoil" ), XOR( "novisrecoil" ) );
-		RegisterElement( &novisrecoil, 1 );
 
-		nosmoke.setup( XOR( "remove smoke grenades" ), XOR( "nosmoke" ) );
-		RegisterElement( &nosmoke, 1 );
-
-		nofog.setup( XOR( "remove fog" ), XOR( "nofog" ) );
-		RegisterElement( &nofog, 1 );
-
-		noflash.setup( XOR( "remove flashbangs" ), XOR( "noflash" ) );
-		RegisterElement( &noflash, 1 );
-
-		noscope.setup( XOR( "remove scope" ), XOR( "noscope" ) );
-		RegisterElement( &noscope, 1 );
+		removals.setup(XOR("Removals"), XOR("Removals"), { XOR("Remove Recoil"), XOR("Remove Smoke"), XOR("Remove Fog"), XOR("Remove Flash"), XOR("Remove Scope Border") }, true);
+		RegisterElement(&removals, 1);
 
 		fov.setup( XOR( "override fov" ), XOR( "fov" ) );
 		RegisterElement( &fov, 1 );
@@ -800,8 +791,12 @@ public:
 		viewmodel_fov_amt.setup( "", XOR( "viewmodel_fov_amt" ), 60.f, 140.f, false, 0, 90.f, 1.f, XOR( L"°" ) );
 		RegisterElement( &viewmodel_fov_amt, 1 );
 
-		spectators.setup( XOR( "show spectator list" ), XOR( "spectators" ) );
-		RegisterElement( &spectators, 1 );
+		spectators.setup(XOR("Enable Spectator List"), XOR("SpecList"));
+		RegisterElement(&spectators, 1);
+
+		spectators_mode.setup(XOR("Spectator List Mode"), XOR("SpectListMode"), { XOR("Ambien"), XOR("Sup / Skeet") });
+		spectators_mode.AddShowCallback(callbacks::IsSpectatorListEnabled);
+		RegisterElement(&spectators_mode, 1);
 
 		force_xhair.setup( XOR( "force crosshair" ), XOR( "force_xhair" ) );
 		RegisterElement( &force_xhair, 1 );

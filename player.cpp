@@ -65,7 +65,7 @@ Weapon *Hooks::GetActiveWeapon( ) {
     static Address ret_1 = pattern::find( g_csgo.m_client_dll, XOR( "85 C0 74 1D 8B 88 ? ? ? ? 85 C9" ) );
 
     // note - dex; stop call to CIronSightController::RenderScopeEffect inside CViewRender::RenderView.
-    if( g_menu.main.visuals.noscope.get( ) ) {
+    if( g_menu.main.visuals.removals.get(4) ) {
         if( stack.ReturnAddress( ) == ret_1 )
             return nullptr;
     }
