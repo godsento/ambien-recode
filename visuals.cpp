@@ -184,7 +184,7 @@ void Visuals::NoSmoke( ) {
 	if( !smoke4 )
 		smoke4 = g_csgo.m_material_system->FindMaterial( XOR( "particle/vistasmokev1/vistasmokev1_emods_impactdust" ), XOR( "Other textures" ) );
 
-	if( g_menu.main.visuals.removals.get(1) ) {
+	if( g_menu.main.visuals.nosmoke.get( ) ) {
 		if( !smoke1->GetFlag( MATERIAL_VAR_NO_DRAW ) )
 			smoke1->SetFlag( MATERIAL_VAR_NO_DRAW, true );
 
@@ -218,7 +218,7 @@ void Visuals::think( ) {
 	if( !g_cl.m_local )
 		return;
 
-	if( g_menu.main.visuals.removals.get(4)
+	if( g_menu.main.visuals.noscope.get( )
 		&& g_cl.m_local->alive( )
 		&& g_cl.m_local->GetActiveWeapon( )
 		&& g_cl.m_local->GetActiveWeapon( )->GetWpnData( )->m_weapon_type == CSWeaponType::WEAPONTYPE_SNIPER_RIFLE
@@ -261,66 +261,44 @@ void Visuals::think( ) {
 	AutomaticPeekIndicator();
 }
 
-//do not even dare to make fun of me for this code I am off of 0 fucking sleep for well over 24 hours again
-
-void Visuals::Spectators() {
-
-	if (!g_csgo.m_engine->IsInGame() || !g_cl.m_local->alive())
+void Visuals::Spectators( ) {
+	if( !g_menu.main.visuals.spectators.get( ) )
 		return;
 
-	if (!g_menu.main.visuals.spectators.get())
-		return;
+	std::vector< std::string > spectators{ XOR( "spectators" ) };
+	int h = render::menu_shade.m_size.m_height;
 
-	Color icolor = g_gui.m_color;
-	std::vector< std::string > spectators{ };
-	if (g_menu.main.visuals.spectators_mode.get() == 0) {
-		render::rect_outlined(g_cl.m_width - 180, g_cl.m_height / 2 + 10, 170, 17, { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 });
-		render::gradient(g_cl.m_width - 180, g_cl.m_height / 2 + 10, 170, 17, { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 }, true);
-		render::menu.string(g_cl.m_width - 95, g_cl.m_height / 2 + 12, colors::white, XOR("Spectators"), render::ALIGN_CENTER);
-	}
-
-	for (int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i) {
-		Player* player = g_csgo.m_entlist->GetClientEntity< Player* >(i);
-		if (!player)
+	for( int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i ) {
+		Player* player = g_csgo.m_entlist->GetClientEntity< Player* >( i );
+		if( !player )
 			continue;
 
-		if (player->m_bIsLocalPlayer())
+		if( player->m_bIsLocalPlayer( ) )
 			continue;
 
-		if (player->dormant())
+		if( player->dormant( ) )
 			continue;
 
-		if (player->m_lifeState() == LIFE_ALIVE)
+		if( player->m_lifeState( ) == LIFE_ALIVE )
 			continue;
 
-		if (player->GetObserverTarget() != g_cl.m_local)
+		if( player->GetObserverTarget( ) != g_cl.m_local )
 			continue;
 
 		player_info_t info;
-		if (!g_csgo.m_engine->GetPlayerInfo(i, &info))
+		if( !g_csgo.m_engine->GetPlayerInfo( i, &info ) )
 			continue;
 
-		spectators.push_back(std::string(info.m_name).substr(0, 24));
+		spectators.push_back( std::string( info.m_name ).substr( 0, 24 ) );
 	}
 
-	if (spectators.empty())
-		return;
+	size_t total_size = spectators.size( ) * ( h - 1 );
 
-	if (g_menu.main.visuals.spectators_mode.get() == 0) {
-		render::rect_outlined(g_cl.m_width - 180, g_cl.m_height / 2 + 37, 170, (spectators.size() * 15), { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 });
-		render::gradient(g_cl.m_width - 180, g_cl.m_height / 2 + 37, 170, (spectators.size() * 15), { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 }, false);
-	}
+	for( size_t i{ }; i < spectators.size( ); ++i ) {
+		const std::string& name = spectators[ i ];
 
-
-	for (size_t i{ }; i < spectators.size(); ++i) {
-		auto& spectator = spectators[i];
-		if (g_menu.main.visuals.spectators_mode.get() == 0) {
-			render::menu.string(g_cl.m_width - 95, (g_cl.m_height / 2 + 37) + (i * 15), colors::white, spectator, render::ALIGN_CENTER);
-		}
-
-		else if (g_menu.main.visuals.spectators_mode.get() == 1) {
-			render::menu.string(g_cl.m_width, 20 + (i * 15), colors::white, spectator, render::ALIGN_RIGHT);
-		}
+		render::menu_shade.string( g_cl.m_width - 20, ( g_cl.m_height / 2 ) - ( total_size / 2 ) + ( i * ( h - 1 ) ),
+			{ 255, 255, 255, 179 }, name, render::ALIGN_RIGHT );
 	}
 }
 

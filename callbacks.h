@@ -1,26 +1,27 @@
 #pragma once
 
 namespace callbacks {
-
-	//other shit / lazy to reorganize :P
-
 	void SkinUpdate( );
 	void ForceFullUpdate( );
 	void ToggleThirdPerson( );
+	void ToggleFakeLatency( );
     void ToggleKillfeed( );
+	void SaveHotkeys( );
+	void ConfigLoad1( );
+	void ConfigLoad2( );
+	void ConfigLoad3( );
+	void ConfigLoad4( );
+	void ConfigLoad5( );
+	void ConfigLoad6( );
+	void ConfigLoad( );
+	void ConfigSave( );
 
-	//ragebot
-
-	bool AUTO_STOP();
 	bool IsBaimHealth( );
 	bool IsFovOn( );
 	bool IsHitchanceOn( );
 	bool IsPenetrationOn( );
 	bool IsMultipointOn( );
 	bool IsMultipointBodyOn( );
-	void ToggleFakeLatency();
-
-	//antiaim
 
 	bool IsAntiAimModeStand( );
 	bool HasStandYaw( );
@@ -50,8 +51,6 @@ namespace callbacks {
 	bool IsFakeAntiAimRelative( );
 	bool IsFakeAntiAimJitter( );
 	
-	//configs
-
 	bool IsConfigMM( );
 	bool IsConfigNS( );
 	bool IsConfig1( );
@@ -60,18 +59,8 @@ namespace callbacks {
 	bool IsConfig4( );
 	bool IsConfig5( );
 	bool IsConfig6( );
-	void SaveHotkeys();
-	void ConfigLoad1();
-	void ConfigLoad2();
-	void ConfigLoad3();
-	void ConfigLoad4();
-	void ConfigLoad5();
-	void ConfigLoad6();
-	void ConfigLoad();
-	void ConfigSave();
 
-	// weapon configs
-
+	// weapon cfgs.
 	bool DEAGLE( );
 	bool ELITE( );
 	bool FIVESEVEN( );
@@ -115,12 +104,7 @@ namespace callbacks {
 	bool KNIFE_BOWIE( );
 	bool KNIFE_BUTTERFLY( );
 	bool KNIFE_SHADOW_DAGGERS( );
+	bool AUTO_STOP( );
 	void ToggleDoubletap();
 	void ToggleDamage();
-
-	//visuals
-	void ToggleThirdPerson();
-	bool IsSpectatorListEnabled();
-	
-	
 }

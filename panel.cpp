@@ -16,7 +16,7 @@ void Hooks::PaintTraverse( VPANEL panel, bool repaint, bool force ) {
 		g_cl.OnPaint( );
 
 	// don't call the original function if we want to remove the scope.
-	if( panel == zoom && g_menu.main.visuals.removals.get(4) )
+	if( panel == zoom && g_menu.main.visuals.noscope.get( ) )
 		return;
 		
 	g_hooks.m_panel.GetOldMethod< PaintTraverse_t >( IPanel::PAINTTRAVERSE )( this, panel, repaint, force );
