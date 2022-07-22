@@ -184,7 +184,7 @@ void Visuals::NoSmoke( ) {
 	if( !smoke4 )
 		smoke4 = g_csgo.m_material_system->FindMaterial( XOR( "particle/vistasmokev1/vistasmokev1_emods_impactdust" ), XOR( "Other textures" ) );
 
-	if( g_menu.main.visuals.nosmoke.get( ) ) {
+	if( g_menu.main.visuals.removals.get(1) ) {
 		if( !smoke1->GetFlag( MATERIAL_VAR_NO_DRAW ) )
 			smoke1->SetFlag( MATERIAL_VAR_NO_DRAW, true );
 
