@@ -664,7 +664,7 @@ void Aimbot::find( ) {
 
 			LagRecord *ideal = g_resolver.FindIdealRecord( t );
 
-			if (!ideal || g_tickshift.m_charged)
+			if (!ideal)
 				ideal = t->m_records.front().get();
 
 			if ( !ideal || !ideal->valid() )
@@ -674,8 +674,10 @@ void Aimbot::find( ) {
 			if ( t->m_hitboxes.empty( ) )
 				continue;
 
+			bool hit_ideal = t->GetBestAimPosition(tmp_pos, tmp_damage, ideal);
+
 			// try to select best record as target.
-			if ( t->GetBestAimPosition( tmp_pos, tmp_damage, ideal ) ) {
+			if ( hit_ideal ) {
 				// if we made it so far, set shit.
 				best.player = t->m_player;
 				best.pos = tmp_pos;
@@ -685,7 +687,12 @@ void Aimbot::find( ) {
 			}
 
 			LagRecord *last = g_resolver.FindLastRecord( t );
-			if ( !last || last == ideal || !last->valid() || g_tickshift.m_charged)
+			if (!last || last == ideal || !last->valid()) {
+				if (ideal != t->m_records.front().get())
+					last = t->m_records.front().get();
+			}
+
+			if (!last || !last->valid())
 				continue;
 
 			t->SetupHitboxes( last );
@@ -1275,7 +1282,7 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 }
 
 bool Aimbot::SelectTarget( LagRecord *record, const vec3_t &aim, float damage ) {
-	
+	return false;
 }
 
 void Aimbot::apply( ) {
@@ -1317,7 +1324,7 @@ void Aimbot::apply( ) {
 			g_cl.m_cmd->m_view_angles -= g_cl.m_local->m_aimPunchAngle( ) * g_csgo.weapon_recoil_scale->GetFloat( );
 
 		// store fired shot.
-		g_shots.OnShotFire( m_target ? m_target : nullptr, m_target ? m_damage : -1.f, g_cl.m_weapon_info->m_bullets, m_target ? m_record : nullptr );
+		g_shots.StoreLastFireData( m_target ? m_target : nullptr, m_target ? m_damage : -1.f, g_cl.m_weapon_info->m_bullets, m_target ? m_record : nullptr );
 
 		// set that we fired.
 		g_cl.m_shot = true;

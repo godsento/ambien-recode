@@ -73,6 +73,7 @@ public:
 	int m_stand_index;
 	int m_stand_index2;
 	int m_body_index;
+	int m_moving_index;
 
 	float m_last_freestand_scan;
 	bool  m_prefer_body;

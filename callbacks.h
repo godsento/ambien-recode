@@ -7,6 +7,8 @@ namespace callbacks {
 	void SkinUpdate( );
 	void ForceFullUpdate( );
 	void ToggleThirdPerson( );
+	void ToggleDesync();
+	void ToggleDesyncInvert();
     void ToggleKillfeed( );
 
 	//ragebot

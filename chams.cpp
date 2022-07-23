@@ -435,10 +435,6 @@ bool Chams::GenerateLerpedMatrix(int index, BoneArray* out) {
 }
 
 void Chams::RenderHistoryChams(int index) {
-	AimPlayer* data;
-	LagRecord* record;
-
-	return;
 
 	Player* player = g_csgo.m_entlist->GetClientEntity< Player* >(index);
 	if (!player)
@@ -449,30 +445,56 @@ void Chams::RenderHistoryChams(int index) {
 
 	bool enemy = g_cl.m_local && player->enemy(g_cl.m_local);
 	if (enemy) {
-
-
-		data = &g_aimbot.m_players[index - 1];
-		if (!data || data->m_records.empty())
+		auto data = &g_aimbot.m_players[index - 1];
+		if (!data)
 			return;
 
-		//record = g_resolver.FindLastRecord(data);
-		//if (!record)
-		//	return;
+		if (data->m_records.front().get()->m_broke_lc)
+			return;
 
 		// override blend.
 		SetAlpha(g_menu.main.players.chams_enemy_history_blend.get() / 100.f);
 
+
+		auto matematerial = debugambientcube;
+
+		switch (g_menu.main.players.chams_enemy_history_type.get()) {
+		case 0:
+			break;
+		case 1:
+			matematerial = debugdrawflat;
+			break;
+		case 2:
+			matematerial = materialMetallnZ;
+			break;
+		case 3:
+			matematerial = skeet;
+			break;
+		case 4:
+			matematerial = onetap;
+			break;
+		case 5:
+			matematerial = materialMetall3;
+			break;
+		case 6:
+			matematerial = promethea_glow;
+			break;
+
+		}
+
 		// set material and color.
-		SetupMaterial(debugdrawflat, g_menu.main.players.chams_enemy_history_col.get(), true);
+		SetupMaterial(matematerial, g_menu.main.players.chams_enemy_history_col.get(), true);
+
 
 		// was the matrix properly setup?
-		BoneArray arr[128];
-		if (Chams::GenerateLerpedMatrix(index, arr)) {
+		if (data->m_records.back().get()) {
+
+
 			// backup the bone cache before we fuck with it.
 			auto backup_bones = player->m_BoneCache().m_pCachedBones;
 
 			// replace their bone cache with our custom one.
-			player->m_BoneCache().m_pCachedBones = arr;
+			player->m_BoneCache().m_pCachedBones = data->m_records.back().get()->m_bones;
 
 			// manually draw the model.
 			player->DrawModel();
@@ -481,6 +503,7 @@ void Chams::RenderHistoryChams(int index) {
 			player->m_BoneCache().m_pCachedBones = backup_bones;
 		}
 	}
+
 }
 
 bool Chams::DrawModel(uintptr_t ctx, const DrawModelState_t& state, const ModelRenderInfo_t& info, matrix3x4_t* bone) {
@@ -601,9 +624,9 @@ void Chams::RenderPlayer(Player* player) {
 	// check if is an enemy.
 	bool enemy = g_cl.m_local && player->enemy(g_cl.m_local) && player->index() != g_cl.m_local->index();
 
-//	if (enemy && g_menu.main.players.chams_enemy_history.get()) {
-//		RenderHistoryChams(player->index());
-//	}
+	if (enemy && g_menu.main.players.chams_enemy_history.get()) {
+		RenderHistoryChams(player->index());
+	}
 
 	if (enemy && g_menu.main.players.chams_enemy.get(0)) {
 

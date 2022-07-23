@@ -21,6 +21,14 @@ void callbacks::ToggleThirdPerson( ) {
 	g_visuals.m_thirdperson = !g_visuals.m_thirdperson;
 }
 
+void callbacks::ToggleDesync() {
+	g_hvh.m_desync = !g_hvh.m_desync;
+}
+void callbacks::ToggleDesyncInvert() {
+	g_hvh.m_desync_invert = !g_hvh.m_desync_invert;
+}
+
+
 void callbacks::ToggleFakeLatency( ) {
 	g_aimbot.m_fake_latency = !g_aimbot.m_fake_latency;
 }

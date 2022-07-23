@@ -7,7 +7,7 @@ void c_tickshift::handle_doubletap() {
 
 	if (!no_dt && m_charged) {
 		m_charge_timer = 0;
-		m_tick_to_shift = 14;
+		m_tick_to_shift = g_cl.goalshift;
 	}
 
 	if (!no_dt) return;
@@ -17,7 +17,7 @@ void c_tickshift::handle_doubletap() {
 
 	if (!m_charged) {
 		if (m_charge_timer > game::TIME_TO_TICKS(.5)) { // .5 seconds after shifting, lets recharge
-			m_tick_to_recharge = 14;
+			m_tick_to_recharge = g_cl.goalshift;
 		}
 		else {
 
@@ -30,17 +30,17 @@ void c_tickshift::handle_doubletap() {
 			}
 		}
 	}
-
+	/*
 	if (g_input.GetKeyState(g_menu.main.movement.fakewalk.get())) {
 		m_charge_timer = 0;
 		m_charged = false;
 	}
-
+	*/
 
 	if (g_cl.m_cmd->m_buttons & IN_ATTACK && can_shoot && m_charged && g_cl.m_weapon_type != WEAPONTYPE_GRENADE && g_cl.m_weapon_id != REVOLVER) {
 		// shot.. lets shift tickbase back so we can dt.
 		m_charge_timer = 0;
-		m_tick_to_shift = 14;
+		m_tick_to_shift = g_cl.goalshift;
 		m_shift_cmd = g_cl.m_cmd->m_command_number;
 		m_shift_tickbase = g_cl.m_local->m_nTickBase();
 		*g_cl.m_packet = false;

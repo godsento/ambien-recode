@@ -374,6 +374,17 @@ void Visuals::StatusIndicators( ) {
 		indicators.push_back(ind);
 	}
 
+
+	bool shdmg = (g_aimbot.damage_override && g_menu.main.aimbot.dmg_override_mode.get() == 1) || (g_menu.main.aimbot.dmg_override_mode.get() == 0 && g_input.GetKeyState(g_menu.main.aimbot.dmg_override.get()));
+
+	if (shdmg) {
+		Indicator_t ind{ };
+		ind.color = Color(220, 220, 220, 255);
+		ind.text = XOR("DMG");
+
+		indicators.push_back(ind);
+	}
+
 	if( indicators.empty( ) )
 		return;
 
@@ -695,8 +706,8 @@ void Visuals::OffScreen( Player* player, int alpha ) {
 
 		// setup vertices for the triangle.
 		verts[ 0 ] = { offscreen_pos.x, offscreen_pos.y };        // 0,  0
-		verts[ 1 ] = { offscreen_pos.x - 12.f, offscreen_pos.y + 24.f }; // -1, 1
-		verts[ 2 ] = { offscreen_pos.x + 12.f, offscreen_pos.y + 24.f }; // 1,  1
+		verts[ 1 ] = { offscreen_pos.x - 16.f, offscreen_pos.y + 32.f }; // -1, 1
+		verts[ 2 ] = { offscreen_pos.x + 16.f, offscreen_pos.y + 32.f }; // 1,  1
 
 		// setup verts for the triangle's outline.
 		verts_outline[ 0 ] = { verts[ 0 ].m_pos.x - 1.f, verts[ 0 ].m_pos.y - 1.f };
@@ -707,46 +718,13 @@ void Visuals::OffScreen( Player* player, int alpha ) {
 		verts[ 0 ] = render::RotateVertex( offscreen_pos, verts[ 0 ], offscreen_rotation );
 		verts[ 1 ] = render::RotateVertex( offscreen_pos, verts[ 1 ], offscreen_rotation );
 		verts[ 2 ] = render::RotateVertex( offscreen_pos, verts[ 2 ], offscreen_rotation );
-		// verts_outline[ 0 ] = render::RotateVertex( offscreen_pos, verts_outline[ 0 ], offscreen_rotation );
-		// verts_outline[ 1 ] = render::RotateVertex( offscreen_pos, verts_outline[ 1 ], offscreen_rotation );
-		// verts_outline[ 2 ] = render::RotateVertex( offscreen_pos, verts_outline[ 2 ], offscreen_rotation );
-
-		// todo - dex; finish this, i want it.
-		// auto &damage_data = m_offscreen_damage[ player->index( ) ];
-		// 
-		// // the local player was damaged by another player recently.
-		// if( damage_data.m_time > 0.f ) {
-		//     // // only a small amount of time left, start fading into white again.
-		//     // if( damage_data.m_time < 1.f ) {
-		//     //     // calculate step needed to reach 255 in 1 second.
-		//     //     // float step = UINT8_MAX / ( 1000.f * g_csgo.m_globals->m_frametime );
-		//     //     float step = ( 1.f / g_csgo.m_globals->m_frametime ) / UINT8_MAX;
-		//     //     
-		//     //     // increment the new value for the color.
-		//     //     // if( damage_data.m_color_step < 255.f )
-		//     //         damage_data.m_color_step += step;
-		//     // 
-		//     //     math::clamp( damage_data.m_color_step, 0.f, 255.f );
-		//     // 
-		//     //     damage_data.m_color.g( ) = (uint8_t)damage_data.m_color_step;
-		//     //     damage_data.m_color.b( ) = (uint8_t)damage_data.m_color_step;
-		//     // }
-		//     // 
-		//     // g_cl.print( "%f %f %u %u %u\n", damage_data.m_time, damage_data.m_color_step, damage_data.m_color.r( ), damage_data.m_color.g( ), damage_data.m_color.b( ) );
-		//     
-		//     // decrement timer.
-		//     damage_data.m_time -= g_csgo.m_globals->m_frametime;
-		// }
-		// 
-		// else
-		//     damage_data.m_color = colors::white;
 
 		// render!
 		color = g_menu.main.players.offscreen_color.get( ); // damage_data.m_color;
 		color.a( ) = ( alpha == 255 ) ? alpha : alpha / 2;
 
 		g_csgo.m_surface->DrawSetColor( color );
-		g_csgo.m_surface->DrawTexturedPolygon( 3, verts );
+		g_csgo.m_surface->DrawTexturedPolyLine( 3, verts );
 
 		// g_csgo.m_surface->DrawSetColor( colors::black );
 		// g_csgo.m_surface->DrawTexturedPolyLine( 3, verts_outline );
@@ -886,12 +864,19 @@ void Visuals::DrawPlayer(Player* player) {
 		// retarded servers that go above 100 hp..
 		int hp = std::min(100, player->m_iHealth());
 
+		static float health[65]{ 0.f };
+
+		if (health[player->index() - 1] != hp)
+			health[player->index() - 1] = math::lerp(g_csgo.m_globals->m_frametime * 8, health[player->index() - 1], hp);
+
+		float hp_ = std::clamp(health[player->index() - 1], 0.f, 100.f);
+
 		// calculate hp bar color.
 		int r = std::min((510 * (100 - hp)) / 100, 255);
 		int g = std::min((510 * hp) / 100, 255);
 
 		// get hp bar height.
-		int fill = (int)std::round(hp * h / 100.f);
+		int fill = (int)std::round(hp_ * h / 100.f);
 
 		// render background.
 		render::rect_filled(box.x - 6, y - 1, 4, h + 2, { 10, 10, 10, low_alpha });
@@ -900,7 +885,7 @@ void Visuals::DrawPlayer(Player* player) {
 		render::rect(box.x - 5, y + h - fill, 2, fill, { r, g, 0, alpha });
 
 		// if hp is below max, draw a string.
-		if (hp < 94)
+		if (hp != 100)
 			render::esp_small.string(box.x - 5, y + (h - fill) - 5, { 255, 255, 255, low_alpha }, std::to_string(hp), render::ALIGN_CENTER);
 	}
 
@@ -977,23 +962,35 @@ void Visuals::DrawPlayer(Player* player) {
 			AimPlayer* data = &g_aimbot.m_players[player->index() - 1];
 
 			// make sure everything is valid.
-			if (data && data->m_moved && data->m_records.size()) {
+			if (data && data->m_records.size()) {
 				// grab lag record.
 				LagRecord* current = data->m_records.front().get();
 
 				if (current) {
-					if (!(current->m_velocity.length_2d() > 0.1 && !current->m_fake_walk) && data->m_body_index <= 3) {
+					if (data->m_predict && data->m_body_index <= 0 && data->m_body_update != FLT_MAX) {
 						// calculate box width
-						float cycle = std::clamp<float>(data->m_body_update - current->m_anim_time, 0.f, 1.0f);
+
+						float curtime = current->m_anim_time;
+
+						static float curtime_[65];
+
+						if (curtime != curtime_[player->index() - 1])
+							curtime_[player->index() - 1] = math::lerp(current->m_lag_time, curtime_[player->index() - 1], curtime);
+
+						float cycle = std::clamp(data->m_body_update - curtime_[player->index() - 1], 0.f, 1.1f);
 						float width = (box.w * cycle) / 1.1f;
 
+
+		
+
 						if (width > 0.f) {
+
 							// draw.
 							render::rect_filled(box.x, box.y + box.h + 2, box.w, 4, { 10, 10, 10, low_alpha });
 
 							Color clr = g_menu.main.players.lby_update_color.get();
 							clr.a() = alpha;
-							render::rect(box.x + 1, box.y + box.h + 3, width, 2, clr);
+							render::rect(box.x + 1, box.y + box.h + 3, width-2, 2, clr);
 
 							// move down the offset to make room for the next bar.
 							offset += 5;
@@ -1328,10 +1325,10 @@ void Visuals::RenderGlow( ) {
 
 		bool enemy = player->enemy( g_cl.m_local );
 
-		if( enemy && !g_menu.main.players.glow_enemy.get( ) )
+		if( enemy && !g_menu.main.players.glow.get( ) )
 			continue;
 
-		if( !enemy && !g_menu.main.players.glow_friendly.get( ) )
+		if( !enemy && !g_menu.main.players.glow_tm.get( ) )
 			continue;
 
 		// enemy color

@@ -30,13 +30,21 @@ void Slider::draw() {
 	auto m_fill_ = m_fill * m_parent->m_fast_anim_step;
 
 	// bar.
-	render::rect(p.x + 1, p.y + m_offset + 1, m_fill_ - 2, SLIDER_HEIGHT - 2, color);
-	render::gradient(p.x + 2, p.y + m_offset + 2, m_fill_ - 4, SLIDER_HEIGHT - 4, Color(color.r(), color.g(), color.b(), m_parent->m_fast_anim_step * 245), Color(color.r(), color.g(), color.b(), m_parent->m_fast_anim_step * 195), false);
+
+
+	if (m_value > m_min) {
+		render::rect(p.x + 1, p.y + m_offset + 1, m_fill_ - 2, SLIDER_HEIGHT - 2, color);
+		render::gradient(p.x + 2, p.y + m_offset + 2, m_fill_ - 4, SLIDER_HEIGHT - 4, Color(color.r(), color.g(), color.b(), m_parent->m_fast_anim_step * 245), Color(color.r(), color.g(), color.b(), m_parent->m_fast_anim_step * 195), false);
+
+	}
 	// to stringstream.
 	std::wstringstream ss;
 
 	auto m_value_ = m_value * m_parent->m_fast_anim_step;
 	ss << std::fixed << std::setprecision(m_precision) << m_value_ << m_suffix;
+
+	if (m_file_id == "doubletap_shift" && m_value > 14)
+		ss << "(risky)";
 
 	// get size.
 	render::FontSize_t size = render::menu_shade.wsize(ss.str());

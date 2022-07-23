@@ -221,22 +221,21 @@ void Resolver::ResolveWalk( AimPlayer* data, LagRecord* record ) {
 	// apply lby to eyeangles.
 	record->m_eye_angles.y = record->m_body;
 
-	// delay body update.
-	// data->m_body_update = record->m_anim_time + 0.22f;
-
-	// reset stand and body index.
-
 	// reset stand and body index.		
-	data->m_last_freestand_scan = record->m_sim_time + 0.05f;
+	data->m_last_freestand_scan = record->m_sim_time + 0.22f;
 
-	if (record->m_anim_velocity.length() > 40.f) { // niggers
+	if (record->m_anim_velocity.length() > 30.f) { // niggers
 		data->m_stand_index = 0;
 		data->m_stand_index2 = 0;
 
-		if (record->m_anim_velocity.length() > 80.f || record->m_lag > 4) {
+		if (record->m_anim_velocity.length() > 100.f || record->m_lag > 7) {
 			data->m_body_index = 0;
+			data->m_moving_index = 0;
 		}
 	}
+
+	if (data->m_moving_index > 0)
+		ResolveStand(data, record);
 
 	// copy the last record that this player was walking
 	// we need it later on because it gives us crucial data.
@@ -287,7 +286,7 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 		float delta = record->m_anim_time - move->m_anim_time;
 
 		// it has not been time for this first update yet.
-		if( delta < 0.22f && diff < 35.f ) {
+		if( delta < 0.22f && diff < 35.f && data->m_body_index <= 0 && data->m_moving_index <= 0 ) {
 
 			// set angles to current LBY.
 			record->m_eye_angles.y = record->m_body;

@@ -393,8 +393,8 @@ void Movement::AutoPeek(CUserCmd* cmd, float wish_yaw) {
 					}
 
 
-					std::clamp(cmd->m_forward_move, -450.f, 450.f);
-					std::clamp(cmd->m_side_move, -450.f, 450.f);
+					cmd->m_forward_move = std::clamp(cmd->m_forward_move, -450.f, 450.f);
+					cmd->m_side_move = std::clamp(cmd->m_side_move, -450.f, 450.f);
 
 				}
 				else {
@@ -547,7 +547,7 @@ void Movement::QuickStop( ) {
 
 void Movement::FakeWalk( ) {
 	vec3_t velocity{ g_cl.m_local->m_vecVelocity( ) };
-	int    ticks{ }, max{ 16 };
+	int    ticks{ }, max{ g_cl.m_max_lag };
 
 	if( !g_input.GetKeyState( g_menu.main.movement.fakewalk.get( ) ) )
 		return;
@@ -562,6 +562,18 @@ void Movement::FakeWalk( ) {
 	//	Movement::QuickStop( );
 	//	return;
 	//}
+
+	if (g_tickshift.m_double_tap && g_cl.m_weapon_info && !g_aimbot.m_stop) {
+
+		float flMaxSpeed = g_cl.m_local->m_bIsScoped() > 0 ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
+
+		if (g_cl.m_local->m_vecVelocity().length_2d() > flMaxSpeed * 0.33f)
+			QuickStop();
+		else
+			ClampMovementSpeed(flMaxSpeed * 0.33f);
+
+		return;
+	}
 	
 	// reference:
 	// https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/game/shared/gamemovement.cpp#L1612
@@ -598,5 +610,34 @@ void Movement::FakeWalk( ) {
 	// zero forwardmove and sidemove.
 	if( ticks > ( ( max - 1 ) - g_csgo.m_cl->m_choked_commands ) || !g_csgo.m_cl->m_choked_commands ) {
 		g_cl.m_cmd->m_forward_move = g_cl.m_cmd->m_side_move = 0.f;
+	}
+}
+
+void Movement::ClampMovementSpeed(float speed) {
+	float final_speed = speed;
+
+	if (!g_cl.m_cmd || !g_cl.m_processing)
+		return;
+
+	g_cl.m_cmd->m_buttons |= IN_SPEED;
+
+	float squirt = std::sqrtf((g_cl.m_cmd->m_forward_move * g_cl.m_cmd->m_forward_move) + (g_cl.m_cmd->m_side_move * g_cl.m_cmd->m_side_move));
+
+	if (squirt > speed) {
+		float squirt2 = std::sqrtf((g_cl.m_cmd->m_forward_move * g_cl.m_cmd->m_forward_move) + (g_cl.m_cmd->m_side_move * g_cl.m_cmd->m_side_move));
+
+		float cock1 = g_cl.m_cmd->m_forward_move / squirt2;
+		float cock2 = g_cl.m_cmd->m_side_move / squirt2;
+
+		auto Velocity = g_cl.m_local->m_vecVelocity().length_2d();
+		/*
+		if (final_speed + 1.0 <= Velocity) {
+			g_cl.m_cmd->m_forward_move = 0;
+			g_cl.m_cmd->m_side_move = 0;
+		}
+		else {*/
+			g_cl.m_cmd->m_forward_move = cock1 * final_speed;
+			g_cl.m_cmd->m_side_move = cock2 * final_speed;
+		//}
 	}
 }

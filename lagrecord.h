@@ -201,6 +201,6 @@ public:
 
 		// calculate difference between tick sent by player and our latency based tick.
 		// ensure this record isn't too old.
-		return std::abs( correct - ( curtime - m_sim_time ) ) <= g_cl.max_bt;
+		return std::abs(correct - (curtime - m_sim_time)) <= 0.2f;
 	}
 };

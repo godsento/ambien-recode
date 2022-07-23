@@ -12,7 +12,7 @@ int Hooks::DebugSpreadGetInt( ) {
 }
 
 bool Hooks::NetShowFragmentsGetBool( ) {
-	if( !g_csgo.m_engine->IsInGame( ) )
+	if( !g_csgo.m_engine->IsInGame( ) || !g_csgo.m_engine->IsConnected() || !g_aimbot.m_fake_latency )
 		return g_hooks.m_net_show_fragments.GetOldMethod< GetBool_t >( ConVar::GETBOOL )( this );
 
 	static auto read_sub_channel_data_ret = pattern::find( g_csgo.m_engine_dll, "85 C0 74 12 53 FF 75 0C 68 ? ? ? ? FF 15 ? ? ? ? 83 C4 0C" ).as< uintptr_t *>( );

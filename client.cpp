@@ -264,6 +264,7 @@ void Client::StartMove( CUserCmd* cmd ) {
 	m_flags = m_local->m_fFlags( );
 	max_bt = 0.2f;//g_tickshift.m_double_tap ? (g_tickshift.m_charged_ticks / 14.f * 0.1f) : 0.2f;
 
+	goalshift = g_menu.main.aimbot.double_tap_shift.get();
 	// ...
 	m_shot = false;
 }
@@ -368,7 +369,7 @@ void Client::DoMove( ) {
 		}
 
 		++updated_this_tick;
-		data->m_last_freestand_scan = player->m_flSimulationTime() + (g_cl.get_fps() <= 90 ? 3.f : 1.f);
+		data->m_last_freestand_scan = player->m_flSimulationTime() + 5.f;
 		g_lagcomp.collect_awall_shit(data);
 	}
 
@@ -436,7 +437,10 @@ void Client::EndMove( CUserCmd* cmd ) {
 
 	// this packet will be sent.
 	if( *m_packet ) {
-		g_hvh.m_step_switch = ( bool ) g_csgo.RandomInt( 0, 1 );
+		++g_hvh.m_step;
+
+		if (g_hvh.m_step > 2)
+			g_hvh.m_step = 0;
 
 		// we are sending a packet, so this will be reset soon.
 		// store the old value.
@@ -536,12 +540,18 @@ void Client::UpdateAnimations( ) {
 }
 
 void Client::UpdateInformation( ) {
-	if( g_cl.m_lag > 0 )
+
+	CCSGOPlayerAnimState* state = g_cl.m_local->m_PlayerAnimState();
+	if (!state)
 		return;
 
-	CCSGOPlayerAnimState* state = g_cl.m_local->m_PlayerAnimState( );
-	if( !state )
+
+	if (g_cl.m_lag > 0) {
+		m_goal_feet_yaw_fake = state->m_goal_feet_yaw;
 		return;
+	}
+
+
 
 	// update time.
 	m_anim_frame = g_csgo.m_globals->m_curtime - m_anim_time;
@@ -625,7 +635,7 @@ void Client::print( const std::string text, ... ) {
 
 	// print to console.
 	g_csgo.m_cvar->ConsoleColorPrintf( g_gui.m_color, XOR( "[ambien] " ) );
-	g_csgo.m_cvar->ConsoleColorPrintf( colors::white, buf.c_str( ) );
+	g_csgo.m_cvar->ConsoleColorPrintf( Color(220, 220, 220), buf.c_str());
 }
 
 bool Client::CanFireWeapon( ) {

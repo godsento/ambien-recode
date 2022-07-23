@@ -27,6 +27,7 @@ public:
 	void AutoPeek( );
 	void QuickStop( );
 	void FakeWalk( );
+	void ClampMovementSpeed(float speed);
 };
 
 extern Movement g_movement;

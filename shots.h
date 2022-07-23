@@ -2,14 +2,18 @@
 
 class ShotRecord {
 public:
-	__forceinline ShotRecord( ) : m_target{}, m_record{}, m_time{}, m_lat{}, m_damage{}, m_pos{}, m_matched{} {}
+	__forceinline ShotRecord() : m_target{}, m_record{}, m_time{}, m_lat{}, m_damage{}, m_pos{}, m_matched{}, m_range{}, m_hurt{ false }, m_impacted{ false }, m_impact_pos{ vec3_t(0, 0, 0) }{}
 
 public:
-	Player*    m_target;
+	Player* m_target;
 	LagRecord* m_record;
 	float      m_time, m_lat, m_damage;
 	vec3_t     m_pos;
 	bool       m_matched;
+	float      m_range;
+	bool       m_hurt;
+	bool       m_impacted;
+	vec3_t     m_impact_pos;
 };
 
 class VisualImpactData_t {
@@ -45,27 +49,35 @@ public:
 
 class Shots {
 private:
-    std::array< std::string, 8 > m_groups = {
-        XOR( "body" ),
-		XOR( "head" ),
-		XOR( "chest" ),
-		XOR( "stomach" ),
-		XOR( "left arm" ),
-		XOR( "right arm" ),
-		XOR( "left leg" ),
-		XOR( "right leg" )
-    };
+	std::array< std::string, 11 > m_groups = {
+   XOR("body"),
+   XOR("head"),
+   XOR("chest"),
+   XOR("stomach"),
+   XOR("left arm"),
+   XOR("right arm"),
+   XOR("left leg"),
+   XOR("right leg"),
+   XOR("neck"),
+   XOR("unknown"),
+   XOR("gear")
+	};
 
 public:
-	void OnShotFire( Player* target, float damage, int bullets, LagRecord* record );
+	void StoreLastFireData( Player* target, float damage, int bullets, LagRecord* record );
 	void OnImpact( IGameEvent* evt );
 	void OnHurt( IGameEvent* evt );
+	void OnFrameStage( );
 
 public:
 	std::deque< ShotRecord >          m_shots;
     std::vector< VisualImpactData_t > m_vis_impacts;
 	std::deque< ImpactRecord >        m_impacts;
 	std::deque< HitRecord >           m_hits;
+
+	ShotRecord last_aimbot_data;
+
+	vec3_t  m_last_shoot_pos;
 };
 
 extern Shots g_shots;

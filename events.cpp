@@ -2,6 +2,63 @@
 
 Listener g_listener{};;
 
+
+void events::weapon_fire(IGameEvent* evt) {
+
+	if (!evt || !g_cl.m_local)
+		return;
+
+	int attacker = g_csgo.m_engine->GetPlayerForUserID(evt->m_keys->FindKey(HASH("userid"))->GetInt());
+
+	if (attacker != g_csgo.m_engine->GetLocalPlayer())
+		return;
+
+	g_shots.m_last_shoot_pos = g_cl.m_shoot_pos;
+
+	if (!g_shots.last_aimbot_data.m_target)
+		return;
+
+	// setup new shot data.
+	ShotRecord shot;
+	memcpy(&shot, &g_shots.last_aimbot_data, sizeof(g_shots.last_aimbot_data));
+
+	// correct shootpos
+	// i think? fix me if not
+	shot.m_pos = g_shots.m_last_shoot_pos;
+	shot.m_range = g_cl.m_weapon_info->m_range;
+
+	if (!shot.m_target)
+		return;
+
+	// increment total shots on this player.
+	AimPlayer* data = &g_aimbot.m_players[shot.m_target->index() - 1];
+	if (data)
+		++data->m_shots;
+
+
+	// get player info.
+	player_info_t info;
+	if (!g_csgo.m_engine->GetPlayerInfo(shot.m_target->index(), &info))
+		return;
+
+	// get player name;
+	std::string name = std::string(info.m_name).substr(0, 16);
+
+	int lag_lagcomp = game::TIME_TO_TICKS(shot.m_record->m_lag_time);
+	int lag = game::TIME_TO_TICKS(shot.m_record->m_sim_time - shot.m_record->m_old_sim_time);
+
+	std::string out{ tfm::format("aimbot fired shot at %s for %i damage, vel[%i:%i] | extrap[%s] | lag[%i]\n",
+								  name, int(shot.m_damage), (int)shot.m_record->m_velocity.length(), (int)shot.m_record->m_anim_velocity.length(), shot.m_record->m_broke_lc ? lag_lagcomp : -1, lag) };
+	g_cl.print(out, true);
+
+	// add to tracks.
+	g_shots.m_shots.push_front(shot);
+
+	// no need to keep an insane amount of shots.
+	while (g_shots.m_shots.size() > 16)
+		g_shots.m_shots.pop_back();
+}
+
 void events::round_start( IGameEvent* evt ) { 
 	// new round has started. no longer round end.
 	g_cl.m_round_end = false;
@@ -343,6 +400,7 @@ void Listener::init( ) {
 	add( XOR( "round_end" ), events::round_end );
 	add( XOR( "player_hurt" ), events::player_hurt );
 	add( XOR( "bullet_impact" ), events::bullet_impact );
+	add( XOR( "weapon_fire" ), events::weapon_fire );
 	add( XOR( "item_purchase" ), events::item_purchase );
 	add( XOR( "player_death" ), events::player_death );
 	add( XOR( "player_given_c4" ), events::player_given_c4 );

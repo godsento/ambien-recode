@@ -74,6 +74,8 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
 
         // draw our custom beams.
         g_visuals.DrawBeams( );
+
+		g_shots.OnFrameStage();
 	}
 
 	// call og.

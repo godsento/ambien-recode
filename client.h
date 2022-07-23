@@ -125,6 +125,8 @@ public:
 	bool m_pressing_move;
 	float max_bt;
 	int  fixed_tickbase;
+	int  goalshift;
+	float m_goal_feet_yaw_fake;
 };
 
 extern Client g_cl;

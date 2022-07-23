@@ -411,7 +411,9 @@ void HVH::DoRealAntiAim( ) {
 		// set the yaw to the direction before applying any other operations.
 		g_cl.m_cmd->m_view_angles.y = m_direction;
 
-		bool stand = g_menu.main.antiaim.body_fake_stand.get( ) > 0 && m_mode == AntiAimMode::STAND;
+		machport_exploit_shit();
+
+		bool stand = g_menu.main.antiaim.body_fake_stand.get( ) > 0 && g_cl.m_flags & FL_ONGROUND;
 
 		// one tick before the update.
 		if( stand && !g_cl.m_lag && g_csgo.m_globals->m_curtime >= ( g_cl.m_body_pred - g_cl.m_anim_frame ) && g_csgo.m_globals->m_curtime < g_cl.m_body_pred ) {
@@ -652,6 +654,8 @@ void HVH::AntiAim( ) {
 	// set pitch.
 	AntiAimPitch( );
 
+	bool nofake = g_tickshift.m_double_tap && g_tickshift.m_charged && g_cl.goalshift > 14;
+
 	// if we have any yaw.
 	if( m_yaw > 0 ) {
 		// set direction.
@@ -662,7 +666,10 @@ void HVH::AntiAim( ) {
 	else if( g_menu.main.antiaim.fake_yaw.get( ) > 0 )
 		m_direction = g_cl.m_cmd->m_view_angles.y;
 
-	if( g_menu.main.antiaim.fake_yaw.get( ) && !g_tickshift.m_shifted ) {
+	if (!desync_shit())
+		return;
+
+	if( g_menu.main.antiaim.fake_yaw.get( ) && !g_tickshift.m_shifted && !nofake ) {
 		// do not allow 2 consecutive sendpacket true if faking angles.
 		if( *g_cl.m_packet && g_cl.m_old_packet )
 			*g_cl.m_packet = false;
@@ -690,6 +697,8 @@ void HVH::SendPacket( ) {
 	// fix rest of hack by forcing to false.
 	if( !*g_cl.m_final_packet )
 		*g_cl.m_packet = false;
+
+
 
 	// fake-lag enabled.
 	if( g_menu.main.antiaim.lag_enable.get( ) && !g_csgo.m_gamerules->m_bFreezePeriod( ) && !( g_cl.m_flags & FL_FROZEN ) ) {
@@ -730,6 +739,8 @@ void HVH::SendPacket( ) {
 			}
 		}
 
+
+
 		if( active ) {
 			int mode = g_menu.main.antiaim.lag_mode.get( );
 
@@ -738,29 +749,21 @@ void HVH::SendPacket( ) {
 				*g_cl.m_packet = false;
 
 			// break.
-			else if( mode == 1 && delta <= 4096.f )
+			else if (mode == 1) {
 				*g_cl.m_packet = false;
+
+				if (m_step == 0)
+					m_step_ticks = limit * 0.5f;
+				else if (m_step == 1)
+					m_step_ticks = limit * 0.75f;
+				else if (m_step == 2)
+					m_step_ticks = limit;
+			}
 
 			// random.
 			else if( mode == 2 ) {
-				// compute new factor.
-				if( g_cl.m_lag >= m_random_lag )
-					m_random_lag = g_csgo.RandomInt( 2, limit );
-
-				// factor not met, keep choking.
-				else *g_cl.m_packet = false;
-			}
-
-			// break step.
-			else if( mode == 3 ) {
-				// normal break.
-				if( m_step_switch ) {
-					if( delta <= 4096.f )
-						*g_cl.m_packet = false;
-				}
-
-				// max.
-				else *g_cl.m_packet = false;
+				*g_cl.m_packet = false;
+				limit = g_csgo.RandomInt(std::clamp(limit - 4, 2, 15), limit);
 			}
 
 			if( g_cl.m_lag >= limit )
@@ -768,7 +771,7 @@ void HVH::SendPacket( ) {
 		}
 	}
 
-	if( !g_menu.main.antiaim.lag_land.get( ) ) {
+	if( g_menu.main.antiaim.lag_land.get( ) > 0 ) {
 		vec3_t                start = g_cl.m_local->m_vecOrigin( ), end = start, vel = g_cl.m_local->m_vecVelocity( );
 		CTraceFilterWorldOnly filter;
 		CGameTrace            trace;
@@ -786,12 +789,13 @@ void HVH::SendPacket( ) {
 
 		// check if landed.
 		if( trace.m_fraction != 1.f && trace.m_plane.m_normal.z > 0.7f && !( g_cl.m_flags & FL_ONGROUND ) )
-			*g_cl.m_packet = true;
+			*g_cl.m_packet = g_menu.main.antiaim.lag_land.get( ) == 1 ? false : true;
 	}
 
 	// force fake-lag to 14 when fakelagging.
-	if( g_input.GetKeyState( g_menu.main.movement.fakewalk.get( ) ) ) {
+	if( g_input.GetKeyState( g_menu.main.movement.fakewalk.get( ) ) && g_cl.m_local->GetGroundEntity() && (g_cl.m_flags & FL_ONGROUND)) {
 		*g_cl.m_packet = false;
+
 	}
 
 	// do not lag while shooting.
@@ -806,5 +810,144 @@ void HVH::SendPacket( ) {
 
 		// disable firing, since we cannot choke the last packet.
 		g_cl.m_weapon_fire = false;
+	}
+}
+
+bool HVH::desync_shit() {
+
+	static bool wtfwtfwtf = false;
+	static bool is_flicking = false;
+	static bool OffShit = false;
+
+	if (g_input.GetKeyState(g_menu.main.movement.fakewalk.get()) && g_cl.m_local->GetGroundEntity() && g_menu.main.movement.fakewalk_mode.get() == 1) {
+		g_cl.m_cmd->m_buttons &= ~(IN_FORWARD | IN_BACK | IN_MOVERIGHT | IN_MOVELEFT);
+		bool attack, attack2;
+		attack = g_cl.m_cmd->m_buttons & IN_ATTACK;
+		attack2 = g_cl.m_cmd->m_buttons & IN_ATTACK2;
+		if (g_cl.m_weapon && g_cl.m_weapon_fire) {
+			bool knife = g_cl.m_weapon_type == WEAPONTYPE_KNIFE && g_cl.m_weapon_id != ZEUS;
+			bool revolver = g_cl.m_weapon_id == REVOLVER;
+
+			// if we are in attack and can fire, do not anti-aim.
+			if (attack || (attack2 && (knife || revolver)))
+				return false;
+		}
+		// disable conditions.
+		if (g_csgo.m_gamerules->m_bFreezePeriod() || (g_cl.m_flags & FL_FROZEN) || (g_cl.m_cmd->m_buttons & IN_USE))
+			return false;
+		*g_cl.m_packet = !(g_cl.m_cmd->m_tick % 2 == 0);
+		// Crazy Desync Walk Magic Not NIGGAR
+		static int MoveCounter = 0;
+		static int FlickCounter = 0;
+		CUserCmd* cmd = g_cl.m_cmd;
+		cmd->m_view_angles.y = m_view - 180;
+		MoveCounter = MoveCounter + 1;
+		cmd->m_side_move = MoveCounter < g_menu.main.movement.desync_ticks.get() ? cmd->m_side_move : 0.f;
+		cmd->m_forward_move = MoveCounter < g_menu.main.movement.desync_ticks.get() ? cmd->m_forward_move : 0.f;
+		if (MoveCounter >= g_menu.main.movement.desync_ticks.get() + 10) {
+			ang_t angle;
+			math::VectorAngles(g_cl.m_local->m_vecVelocity(), angle);
+			angle.y = g_cl.m_view_angles.y - angle.y;
+			vec3_t direction;
+			math::AngleVectors(angle, &direction);
+			vec3_t stop = direction * -1;
+			g_cl.m_cmd->m_forward_move = stop.x;
+			g_cl.m_cmd->m_side_move = stop.y;
+		}
+		if (MoveCounter >= 6 && MoveCounter <= 9 && !*g_cl.m_packet && !g_menu.main.movement.safe_desync.get()) {
+			static bool LastFlip = false;
+			g_cl.m_cmd->m_view_angles.y -= ((LastFlip != m_desync_invert || OffShit || (wtfwtfwtf && LastFlip == g_hvh.m_desync_invert)) ? 120 : 160) * (m_desync_invert ? -1 : 1);
+			LastFlip = m_desync_invert;
+			OffShit = false;
+		}
+		if (MoveCounter >= g_menu.main.movement.desync_ticks.get() + 20 && !*g_cl.m_packet) {
+			MoveCounter = 0;
+			if (std::abs(math::NormalizedAngle((g_cl.m_abs_yaw - g_cl.m_goal_feet_yaw_fake))) < 20) {
+				wtfwtfwtf = !wtfwtfwtf;
+			}
+			g_cl.m_cmd->m_view_angles.y += 110 * (m_desync_invert ? -1 : 1);
+		}
+		return false;
+	}
+	is_flicking = false;
+	if (m_desync) {
+		if ((g_cl.m_cmd->m_forward_move == 0 && g_cl.m_cmd->m_side_move == 0)) {
+			if (g_cl.m_local->m_vecVelocity().length_2d() > 35)
+				return false;
+			*g_cl.m_packet = !(g_cl.m_cmd->m_tick % 2 == 0);
+			CUserCmd* cmd = g_cl.m_cmd;
+			static int tick_counter = 0;
+			static bool flick_flip = false;
+			static bool after_flick = false;
+			if (cmd->m_tick % 2 == 0)
+			{
+				DoRealAntiAim();
+				tick_counter++;
+				if (tick_counter == 7 || tick_counter == 1)
+				{
+					flick_flip = !flick_flip;
+					g_cl.m_cmd->m_view_angles.y += (flick_flip ? -120 : 110);
+					g_cl.m_cmd->m_forward_move += (flick_flip ? 21 : -21);
+					tick_counter = tick_counter == 7 ? 0 : tick_counter;
+					after_flick = true;
+					is_flicking = true;
+					return false;
+				}
+				if (after_flick)
+				{
+					after_flick = false;
+					is_flicking = true;
+					g_cl.m_cmd->m_view_angles.y -= 120;
+				}
+				return false;
+			}
+			else
+			{
+				DoFakeAntiAim();
+			}
+		}
+		if (m_mode == AntiAimMode::STAND)
+			return false;
+	}
+
+	return true;
+}
+bool boxhackbreaker_flip;
+void HVH::machport_exploit_shit() {
+	// if we have a yaw active, which is true if we arrived here.
+// set the yaw to the direction before applying any other operations.
+	if (g_menu.main.antiaim.boxhack_breaker.get() && g_tickshift.m_charged) {
+		// ok this is a dumbass exploit, heres how it works
+		// for hacks such as dopium, kaaba, and pandora.gg
+		// they dont animate players when theyre shifting tickbase (weird, but alr)
+		// we can abuse this by flicking and breaking lc on the same tick
+		// this will create desync for our feet yaw
+		// effectively making modern desync but with a couple extra steps
+		// ^ - machport, 6/10/2022
+		m_direction = g_cl.m_cmd->m_view_angles.y + 180;
+		if (g_cl.m_cmd->m_side_move == 0) {
+			static bool boxhackbreaker_side_flip = false;
+			g_cl.m_cmd->m_side_move = boxhackbreaker_side_flip ? 3.25 : -3.25;
+			boxhackbreaker_side_flip = !boxhackbreaker_side_flip;
+		}
+		if (g_cl.m_cmd->m_forward_move == 0) {
+			static bool boxhackbreaker_for_flip = false;
+			g_cl.m_cmd->m_forward_move = boxhackbreaker_for_flip ? 3.25 : -3.25;
+			boxhackbreaker_for_flip = !boxhackbreaker_for_flip;
+		}
+		boxhackbreaker_flip = !boxhackbreaker_flip;
+		m_direction -= boxhackbreaker_flip ? (120 * (g_hvh.m_desync_invert ? -1 : 1)) : 0;
+		g_tickshift.m_tick_to_shift_alternate = boxhackbreaker_flip ? 16 : 0;
+		g_cl.m_cmd->m_view_angles.y = m_direction;
+	}
+	g_cl.m_cmd->m_view_angles.y = m_direction;
+
+	static bool boiwthboi = false;
+	static bool ForwardFlip = false;
+	float speed = g_cl.m_local->m_vecVelocity().length_2d();
+	if (boiwthboi) {
+		g_cl.m_cmd->m_forward_move = ForwardFlip ? 7.25 : -7.25;
+		ForwardFlip = !ForwardFlip;
+		boiwthboi = false;
 	}
 }

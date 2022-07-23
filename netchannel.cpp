@@ -6,6 +6,10 @@
 int Hooks::SendDatagram( void* data ) {
 	int backup2 = g_csgo.m_net->m_in_seq;
 
+
+	if (!g_aimbot.m_fake_latency || !g_cl.m_processing || !g_csgo.m_engine->IsConnected() || !g_csgo.m_engine->IsInGame() )
+		return g_hooks.m_net_channel.GetOldMethod< SendDatagram_t >(INetChannel::SENDDATAGRAM)(this, data);
+
 	if( g_aimbot.m_fake_latency ) {
 		int ping = g_menu.main.misc.fake_latency_amt.get( );
 

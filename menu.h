@@ -28,6 +28,7 @@ public:
 	Keybind       baim_key;
 
 	Keybind		  double_tap;
+	Slider        double_tap_shift;
 
 	Dropdown      dmg_override_mode;
 	Slider        dmg_override_amount;
@@ -126,6 +127,10 @@ public:
 		double_tap.SetToggleCallback(callbacks::ToggleDoubletap);
 		RegisterElement(&double_tap, 1);
 
+		double_tap_shift.setup(XOR(""), XOR("doubletap_shift"), 11, 15, false, 0, 13, 1.f, L"t");
+		RegisterElement(&double_tap_shift, 1);
+
+
 		auto_peek.setup(XOR("auto peek"), XOR("auto_peek"));
 		RegisterElement(&auto_peek, 1);
 
@@ -179,8 +184,17 @@ public:
 	MultiDropdown lag_active;
 	Dropdown      lag_mode;
 	Slider        lag_limit;
-	Checkbox      lag_land;
+	Dropdown      lag_land;
 
+
+	Keybind lag_exploit;
+	Checkbox       boxhack_breaker;
+
+	Keybind fake_flick;
+	Keybind fake_flick_invert;
+	Dropdown desync_mode;
+	Slider  fakeflick_angle;
+	Keybind blackpersonwalk;
 public:
 	void init( ) {
 		SetTitle(XOR("anti-aim"), "anti-aimbot features.");
@@ -353,14 +367,27 @@ public:
 		lag_active.setup( "", XOR( "lag_active" ), { XOR( "move" ), XOR( "air" ), XOR( "crouch" ) }, false );
 		RegisterElement( &lag_active, 1 );
 
-		lag_mode.setup( "", XOR( "lag_mode" ), { XOR( "max" ), XOR( "break" ), XOR( "random" ), XOR( "break step" ) }, false );
+		lag_mode.setup( "", XOR( "lag_mode" ), { XOR( "maximum" ), XOR( "step" ), XOR( "random" ) }, false );
 		RegisterElement( &lag_mode, 1 );
 
-		lag_limit.setup( XOR( "limit" ), XOR( "lag_limit" ), 2, 16, true, 0, 2, 1.f );
+		lag_limit.setup( XOR( "limit" ), XOR( "lag_limit" ), 2, 15, true, 0, 2, 1.f );
 		RegisterElement( &lag_limit, 1 );
 
-		lag_land.setup( XOR( "on land" ), XOR( "lag_land" ) );
+		lag_land.setup( XOR( "on bunnyhop" ), XOR( "lag_land" ), { "off", "force choke", "reset choke" });
 		RegisterElement( &lag_land, 1 );
+
+		lag_exploit.setup(XOR("lag exploit"), XOR("lag_exploit"));
+		RegisterElement(&lag_exploit, 1);
+		boxhack_breaker.setup(XOR("experimental"), XOR("break_boxhack"));
+		RegisterElement(&boxhack_breaker, 1);
+		fake_flick.setup(XOR("fake flick"), XOR("desync_legs"));
+		fake_flick.SetToggleCallback(callbacks::ToggleDesync);
+		RegisterElement(&fake_flick, 1);
+		desync_mode.setup("flick mode", XOR("desyncmode"), { XOR("defensive"), XOR("offensive"),XOR("offensive bypass") }, true);
+		RegisterElement(&desync_mode, 1);
+		fake_flick_invert.setup(XOR("invert"), XOR("desync_invert"));
+		fake_flick_invert.SetToggleCallback(callbacks::ToggleDesyncInvert);
+		RegisterElement(&fake_flick_invert, 1);
 	}
 };
 
@@ -412,16 +439,18 @@ public:
 	Colorpicker   chams_enemy_vis;
 	Colorpicker   chams_enemy_invis;
 	Slider        chams_enemy_blend;
+	Dropdown      enemychamstype;
 	Checkbox      chams_enemy_history;
 	Colorpicker   chams_enemy_history_col;
 	Slider        chams_enemy_history_blend;
-	Dropdown      enemychamstype;
+	Dropdown      chams_enemy_history_type;
 
 	MultiDropdown chams_friendly;
 	Colorpicker   chams_friendly_vis;
 	Colorpicker   chams_friendly_invis;
 	Slider        chams_friendly_blend;
 	Dropdown      friendchamstype;
+
 
 
 	Checkbox      chams_local;
@@ -606,6 +635,7 @@ public:
 		chams_enemy_blend.AddShowCallback(callbacks::ChamsOther);
 		RegisterElement(&chams_enemy_blend, 1);
 
+
 		enemychamstype.setup(XOR("enemy chams type"), XOR("chamstype"), { XOR("textured"), XOR("flat"), XOR("metallic"), XOR("glow"), XOR("wireframe"), XOR("metallic2"), "onetap glow" });
 		enemychamstype.AddShowCallback(callbacks::EnemyVisuals);
 		enemychamstype.AddShowCallback(callbacks::ChamsOther);
@@ -626,6 +656,12 @@ public:
 		chams_enemy_history_blend.AddShowCallback(callbacks::EnemyVisuals);
 		chams_enemy_history_blend.AddShowCallback(callbacks::ChamsOther);
 		RegisterElement(&chams_enemy_history_blend, 1);
+
+
+		chams_enemy_history_type.setup(XOR("history chams type"), XOR("chams_enemy_history_type"), { XOR("textured"), XOR("flat"), XOR("metallic"), XOR("glow"), XOR("wireframe"), XOR("metallic2"), "onetap glow" });
+		chams_enemy_history_type.AddShowCallback(callbacks::EnemyVisuals);
+		chams_enemy_history_type.AddShowCallback(callbacks::ChamsOther);
+		RegisterElement(&chams_enemy_history_type, 1);
 
 		chams_friendly.setup(("chams friendly"), ("chams_friendly"), { ("visible"), ("invisible") });
 		chams_friendly.AddShowCallback(callbacks::TeammateVisuals);
@@ -853,6 +889,10 @@ public:
 	Keybind  autostop;
 	Checkbox autostop_always_on;
 
+	Dropdown fakewalk_mode;
+	Slider   desync_ticks;
+	Checkbox safe_desync;
+
 public:
 	void init( ) {
 		SetTitle(XOR("movement"), "movement features.");
@@ -883,6 +923,17 @@ public:
 
 		fakewalk.setup( XOR( "fake-walk" ), XOR( "fakewalk" ) );
 		RegisterElement( &fakewalk, 1 );
+
+
+		fakewalk_mode.setup(XOR("mode"), XOR("fwmode"), { XOR("normal"), XOR("desync") });
+		RegisterElement(&fakewalk_mode, 1);
+
+		safe_desync.setup(XOR("safe desync"), XOR("safedesync"));
+		RegisterElement(&safe_desync, 1);
+
+		desync_ticks.setup(XOR("ticks"), XOR("desyncticks"), 10, 40, false, 0, 20, 1, XOR(L"t"));
+		RegisterElement(&desync_ticks, 1);
+
 
 		autopeek.setup( XOR( "automatic peek" ), XOR( "autopeek" ) );
 		RegisterElement( &autopeek, 1 );
@@ -2093,7 +2144,7 @@ public:
 		fake_latency.SetToggleCallback( callbacks::ToggleFakeLatency );
 		RegisterElement( &fake_latency );
 
-		fake_latency_amt.setup( "", XOR( "fake_latency_amt" ), 50.f, 800.f, false, 0, 200.f, 50.f, XOR( L"ms" ) );
+		fake_latency_amt.setup( "", XOR( "fake_latency_amt" ), 50.f, 750.f, false, 0, 200.f, 50.f, XOR( L"ms" ) );
 		RegisterElement( &fake_latency_amt );
 
 		// col2.
@@ -2138,7 +2189,7 @@ public:
 	void init( ) {
 		SetTitle(XOR("config"), "load / save configs");
 
-		menu_color.setup( XOR( "menu color" ), XOR( "menu_color" ), colors::burgundy, &g_gui.m_color );
+		menu_color.setup( XOR( "menu color" ), XOR( "menu_color" ), Color(125, 165, 255), &g_gui.m_color);
 		RegisterElement( &menu_color );
 
 		mode.setup( XOR( "safety mode" ), XOR( "mode" ), { XOR( "matchmaking" ), XOR( "no-spread" ) } );

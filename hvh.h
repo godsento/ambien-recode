@@ -38,7 +38,12 @@ public:
 	float  m_dir_custom;
 	size_t m_base_angle;
 
-	bool   m_step_switch;
+	bool fakeflick_side;
+	bool m_desync;
+	bool m_desync_invert;
+
+	int   m_step;
+	int   m_step_ticks;
 	int    m_random_lag;
 	float  m_next_random_update;
 	float  m_random_angle;
@@ -58,6 +63,8 @@ public:
 	void DoFakeAntiAim( );
 	void AntiAim( );
 	void SendPacket( );
+	bool desync_shit();
+	void machport_exploit_shit();
 };
 
 extern HVH g_hvh;

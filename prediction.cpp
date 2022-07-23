@@ -32,13 +32,31 @@ bool Hooks::InPrediction( ) {
 	return g_hooks.m_prediction.GetOldMethod< InPrediction_t >( CPrediction::INPREDICTION )( this );
 }
 
-void Hooks::RunCommand( Entity* ent, CUserCmd* cmd, IMoveHelper* movehelper ) {
-	// airstuck jitter / overpred fix.
-	if( cmd->m_tick >= std::numeric_limits< int >::max( ) )
-		return;
+void Hooks::RunCommand(Entity* ent, CUserCmd* cmd, IMoveHelper* movehelper) {
+	if (!ent || ent->index() != g_csgo.m_engine->GetLocalPlayer())
+		return g_hooks.m_prediction.GetOldMethod< RunCommand_t >(CPrediction::RUNCOMMAND)(this, ent, cmd, movehelper);
 
-	g_hooks.m_prediction.GetOldMethod< RunCommand_t >( CPrediction::RUNCOMMAND )( this, ent, cmd, movehelper );
+	if (cmd->m_tick >= (g_cl.m_tick + int(1 / g_csgo.m_globals->m_interval) + 8)) {
+		cmd->m_predicted = true;
+		return;
+	}
+
+	// get player pointer.
+	Player* player = (Player*)ent;
+
+	// backup variables.
+	int backup_tickbase = player->m_nTickBase();
+	float backup_curtime = g_csgo.m_globals->m_curtime;
+
+	// fix tickbase when shifting.
+	if (cmd->m_command_number == g_tickshift.m_shift_cmd) {
+		player->m_nTickBase() = game::TIME_TO_TICKS(player->m_flSimulationTime());
+		++player->m_nTickBase();
+
+		g_csgo.m_globals->m_curtime = game::TICKS_TO_TIME(player->m_nTickBase());
+	}
+	g_hooks.m_prediction.GetOldMethod< RunCommand_t >(CPrediction::RUNCOMMAND)(this, ent, cmd, movehelper);
 
 	// store non compressed netvars.
-	g_netdata.store( );
+	g_netdata.store();
 }

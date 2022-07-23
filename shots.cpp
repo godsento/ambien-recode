@@ -2,35 +2,14 @@
 
 Shots g_shots{ };
 
-void Shots::OnShotFire( Player *target, float damage, int bullets, LagRecord *record ) {
-
-	// iterate all bullets in this shot.
-	for ( int i{ }; i < bullets; ++i ) {
-		// setup new shot data.
-		ShotRecord shot;
-		shot.m_target = target;
-		shot.m_record = record;
-		shot.m_time = game::TICKS_TO_TIME( g_cl.m_local->m_nTickBase( ) );
-		shot.m_lat = g_cl.m_latency;
-		shot.m_damage = damage;
-		shot.m_pos = g_cl.m_local->GetShootPosition( );
-
-		// we are not shooting manually.
-		// and this is the first bullet, only do this once.
-		if ( target && i == 0 ) {
-			// increment total shots on this player.
-			AimPlayer *data = &g_aimbot.m_players[ target->index( ) - 1 ];
-			if ( data )
-				++data->m_shots;
-		}
-
-		// add to tracks.
-		m_shots.push_front( shot );
-	}
-
-	// no need to keep an insane amount of shots.
-	while ( m_shots.size( ) > 128 )
-		m_shots.pop_back( );
+void Shots::StoreLastFireData(Player* target, float damage, int bullets, LagRecord* record) {
+	last_aimbot_data.m_target = target;
+	last_aimbot_data.m_record = record;
+	last_aimbot_data.m_time = game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase());
+	last_aimbot_data.m_lat = g_cl.m_latency;
+	last_aimbot_data.m_damage = damage;
+	last_aimbot_data.m_pos = g_cl.m_shoot_pos;
+	last_aimbot_data.m_range = g_cl.m_weapon_info->m_range;
 }
 
 void Shots::OnImpact( IGameEvent *evt ) {
@@ -61,7 +40,7 @@ void Shots::OnImpact( IGameEvent *evt ) {
 	// add to visual impacts if we have features that rely on it enabled.
 	// todo - dex; need to match shots for this to have proper GetShootPosition, don't really care to do it anymore.
 	if ( g_menu.main.visuals.impact_beams.get( ) )
-		m_vis_impacts.push_back( { pos, g_cl.m_local->GetShootPosition( ), g_cl.m_local->m_nTickBase( ) } );
+		m_vis_impacts.push_back( { pos, g_shots.m_last_shoot_pos, g_cl.m_local->m_nTickBase( ) } );
 
 	// we did not take a shot yet.
 	if ( m_shots.empty( ) )
@@ -106,6 +85,8 @@ void Shots::OnImpact( IGameEvent *evt ) {
 
 	// this shot was matched.
 	shot->m_matched = true;
+	shot->m_impacted = true;
+	shot->m_impact_pos = pos;
 
 	// create new impact instance that we can match with a player hurt.
 	ImpactRecord impact;
@@ -119,9 +100,10 @@ void Shots::OnImpact( IGameEvent *evt ) {
 	m_impacts.push_front( impact );
 
 	// no need to keep an insane amount of impacts.
-	while ( m_impacts.size( ) > 128 )
+	while ( m_impacts.size( ) > 16 )
 		m_impacts.pop_back( );
 
+	/*
 	// nospread mode.
 	if ( g_menu.main.config.mode.get( ) == 1 )
 		return;
@@ -216,7 +198,7 @@ void Shots::OnImpact( IGameEvent *evt ) {
 
 		++data->m_missed_shots;
 	}
-
+	*/
 }
 
 void Shots::OnHurt( IGameEvent *evt ) {
@@ -324,13 +306,16 @@ void Shots::OnHurt( IGameEvent *evt ) {
 	hit.m_group = group;
 	hit.m_damage = damage;
 
+	impact->m_shot->m_hurt = true;
+	
 	//g_cl.print( "hit %x time: %f lat: %f dmg: %f\n", impact->m_shot->m_record, impact->m_shot->m_time, impact->m_shot->m_lat, impact->m_shot->m_damage );
 
 	m_hits.push_front( hit );
 
-	while ( m_hits.size( ) > 128 )
+	while ( m_hits.size( ) > 16 )
 		m_hits.pop_back( );
 
+	/*
 	AimPlayer *data = &g_aimbot.m_players[ target->index( ) - 1 ];
 	if ( !data )
 		return;
@@ -375,5 +360,139 @@ void Shots::OnHurt( IGameEvent *evt ) {
 		//default:
 		//	break;
 		//}
+	}*/
+}
+
+void Shots::OnFrameStage()
+{
+	if (!g_cl.m_processing || m_shots.empty()) {
+		if (!m_shots.empty())
+			m_shots.clear();
+
+		return;
+	}
+
+	for (auto it = m_shots.begin(); it != m_shots.end();) {
+		if (it->m_time + 1.f < g_csgo.m_globals->m_curtime)
+			it = m_shots.erase(it);
+		else
+			it = next(it);
+	}
+
+	for (auto it = m_shots.begin(); it != m_shots.end();) {
+		if (it->m_impacted && !it->m_hurt) {
+			// not in nospread mode, see if the shot missed due to spread.
+			Player* target = it->m_target;
+			if (!target) {
+				it = m_shots.erase(it);
+				continue;
+			}
+
+			// not gonna bother anymore.
+			if (!target->alive()) {
+				g_notify.add(XOR("missed shot due to latency (target death)\n"));
+				it = m_shots.erase(it);
+				continue;
+			}
+
+			AimPlayer* data = &g_aimbot.m_players[target->index() - 1];
+			if (!data) {
+				it = m_shots.erase(it);
+				continue;
+			}
+
+			// this record was deleted already.
+			if (!it->m_record->m_bones) {
+
+				it = m_shots.erase(it);
+				continue;
+			}
+
+			// write historical matrix of the time that we shot
+			// into the games bone cache, so we can trace against it.
+			//it->m_record->cache( );
+
+			// start position of trace is where we took the shot.
+			vec3_t start = it->m_pos;
+
+			// the impact pos contains the spread from the server
+			// which is generated with the server seed, so this is where the bullet
+			// actually went, compute the direction of this from where the shot landed
+			// and from where we actually took the shot.
+			vec3_t dir = (it->m_impact_pos - start).normalized();
+
+			// get end pos by extending direction forward.
+			// todo; to do this properly should save the weapon range at the moment of the shot, cba..
+			vec3_t end = start + dir * std::clamp((start.dist_to(it->m_record->m_pred_origin) * 2.0f), 0.f, it->m_range);
+
+			Player* m_player = target;
+			LagRecord* record = it->m_record;
+
+			const vec3_t backup_origin = m_player->m_vecOrigin();
+			const vec3_t backup_abs_origin = m_player->GetAbsOrigin();
+			const ang_t backup_abs_angles = m_player->GetAbsAngles();
+			const vec3_t backup_obb_mins = m_player->m_vecMins();
+			const vec3_t backup_obb_maxs = m_player->m_vecMaxs();
+			const auto backup_cache = m_player->m_BoneCache2();
+
+			// quick function
+			auto restore = [&]() -> void {
+				m_player->m_vecOrigin() = backup_origin;
+				m_player->SetAbsOrigin(backup_abs_origin);
+				m_player->SetAbsAngles(backup_abs_angles);
+				m_player->m_vecMins() = backup_obb_mins;
+				m_player->m_vecMaxs() = backup_obb_maxs;
+				m_player->m_BoneCache2() = backup_cache;
+			};
+
+			auto apply = [&]() -> void {
+				m_player->m_vecOrigin() = record->m_pred_origin;
+				m_player->SetAbsOrigin(record->m_pred_origin);
+				m_player->SetAbsAngles(record->m_abs_ang);
+				m_player->m_vecMins() = record->m_mins;
+				m_player->m_vecMaxs() = record->m_maxs;
+				m_player->m_BoneCache2() = reinterpret_cast<matrix3x4_t**>(record->m_bones);
+
+			};
+
+			CGameTrace trace;
+
+			apply();
+			g_csgo.m_engine_trace->ClipRayToEntity(Ray(start, end), MASK_SHOT, target, &trace);
+			restore();
+
+			if (trace.m_entity != target) {
+				g_notify.add(XOR("missed shot due to spread\n"));
+				it = m_shots.erase(it);
+				continue;
+			}
+			
+			size_t mode = it->m_record->m_mode;
+
+			// if we miss a shot on body update.
+			// we can chose to stop shooting at them.
+			if (mode == Resolver::Modes::RESOLVE_BODY)
+				++data->m_body_index;
+
+			else if (mode == Resolver::Modes::RESOLVE_STAND)
+				++data->m_stand_index;
+
+			else if (mode == Resolver::Modes::RESOLVE_STAND2)
+				++data->m_stand_index2;
+
+			else if (mode == Resolver::Modes::RESOLVE_WALK && it->m_record->m_anim_velocity.length() < 30.f)
+				++data->m_moving_index;
+
+			++data->m_missed_shots;
+		
+
+			g_notify.add(XOR("missed shot due to unknown\n"));
+
+			// we processed this shot, let's delete it.
+			it = m_shots.erase(it);
+		}
+		else {
+			it = next(it);
+		}
 	}
 }
