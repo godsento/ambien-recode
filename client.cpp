@@ -466,6 +466,12 @@ void Client::EndMove( CUserCmd* cmd ) {
 
 		// save sent origin and time.
 		m_net_pos.emplace_front( g_csgo.m_globals->m_curtime, cur );
+
+		if (pick_random != 120 && pick_random != -120)
+			pick_random = 120;
+
+		if (g_csgo.RandomFloat(0, 5) <= 1)
+			pick_random = -pick_random;
 	}
 
 	// store some values for next tick.
@@ -541,6 +547,10 @@ void Client::UpdateAnimations( ) {
 	// update animations with last networked data.
 	g_cl.m_local->SetPoseParameters( g_cl.m_poses );
 
+
+	//if (g_hvh.m_desync)
+		//g_cl.m_abs_yaw += (bool)g_csgo.RandomInt(0, 1) ? g_csgo.RandomFloat(90.f, 145.f) : -g_csgo.RandomFloat(90.f, 145.f);
+
 	// update abs yaw with last networked abs yaw.
 	g_cl.m_local->SetAbsAngles( ang_t( 0.f, g_cl.m_abs_yaw, 0.f ) );
 }
@@ -573,17 +583,14 @@ void Client::UpdateInformation( ) {
 	math::clamp( m_angle.x, -90.f, 90.f );
 	m_angle.normalize( );
 
+
+//	if (g_hvh.m_desync)
+//		m_angle.y = g_hvh.m_direction;
+
 	// write angles to model.
 	g_csgo.m_prediction->SetLocalViewAngles( m_angle );
 
-	// we landed.
-	if (!m_ground && state->m_ground) {
-		m_body = m_angle.y;
-		m_body_pred = m_anim_time;
-	}
-
-	// walking, delay lby update by .22.
-	else if (state->m_speed > 0.1f) {
+	if (state->m_speed > 0.1f) {
 		if (state->m_ground)
 			m_body = m_angle.y;
 
@@ -597,7 +604,10 @@ void Client::UpdateInformation( ) {
 	}
 
 	// set lby to predicted value.
-	g_cl.m_local->m_flLowerBodyYawTarget( ) = m_body;
+//	if (!g_hvh.m_desync)
+		g_cl.m_local->m_flLowerBodyYawTarget( ) = m_body;
+//	else
+//		g_cl.m_local->m_flLowerBodyYawTarget() = math::NormalizedAngle(g_csgo.RandomFloat(360, -360));
 
 	// CCSGOPlayerAnimState::Update, bypass already animated checks.
 	if( state->m_frame >= g_csgo.m_globals->m_frame )
@@ -612,11 +622,11 @@ void Client::UpdateInformation( ) {
 	// get last networked poses.
 	g_cl.m_local->GetPoseParameters( g_cl.m_poses );
 
+//	if (g_hvh.m_desync)
+//		state->m_goal_feet_yaw = m_angle.y - pick_random;
+
 	// store updated abs yaw.
 	g_cl.m_abs_yaw = state->m_goal_feet_yaw;
-
-	if (g_hvh.m_desync)
-		g_cl.m_abs_yaw = m_body;
 
 	// save updated data.
 	m_rotation = g_cl.m_local->m_angAbsRotation( );

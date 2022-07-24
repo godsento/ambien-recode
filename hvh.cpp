@@ -416,13 +416,15 @@ void HVH::DoRealAntiAim( ) {
 	// if we have a yaw antaim.
 	if( m_yaw > 0 ) {
 
+
+
+		machport_exploit_shit();
+
 		// if we have a yaw active, which is true if we arrived here.
 		// set the yaw to the direction before applying any other operations.
 		g_cl.m_cmd->m_view_angles.y = m_direction;
 
-		machport_exploit_shit();
-
-		bool stand = g_menu.main.antiaim.body_fake_stand.get( ) > 0 && g_cl.m_flags & FL_ONGROUND;
+		bool stand = g_menu.main.antiaim.body_fake_stand.get( ) > 0 && g_cl.m_flags & FL_ONGROUND && g_cl.m_local->m_vecVelocity().length() <= 0.1f;
 
 		// one tick before the update.
 		if( stand && !g_cl.m_lag && g_csgo.m_globals->m_curtime >= ( g_cl.m_body_pred - g_cl.m_anim_frame ) && g_csgo.m_globals->m_curtime < g_cl.m_body_pred ) {

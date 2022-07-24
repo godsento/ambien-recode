@@ -127,6 +127,7 @@ public:
 	int  fixed_tickbase;
 	int  goalshift;
 	float m_goal_feet_yaw_fake;
+	float  pick_random;
 };
 
 extern Client g_cl;
