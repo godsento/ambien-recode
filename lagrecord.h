@@ -71,6 +71,7 @@ public:
 
 	// other stuff.
 	float  m_interp_time;
+	std::string m_resolver_mode;
 public:
 
 	// default ctor.
@@ -154,7 +155,6 @@ public:
 
 	// function: restores 'predicted' variables to their original.
 	__forceinline void predict( ) {
-		m_broke_lc      = false;
 		m_pred_origin   = m_origin;
 		m_pred_velocity = m_velocity;
 		m_pred_time     = m_sim_time;

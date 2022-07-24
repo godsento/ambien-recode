@@ -76,6 +76,7 @@ namespace render {
 	void gradient( int x, int y, int w, int h, Color color1, Color color2 );
 	void sphere( vec3_t origin, float radius, float angle, float scale, Color color );
 	Vertex RotateVertex( const vec2_t& p, const Vertex& v, float angle );
+	void FilledTriangle(const vec2_t& pos1, const vec2_t& pos2, const vec2_t& pos3, const Color& col);
 }
 
 // nitro du hurensohn

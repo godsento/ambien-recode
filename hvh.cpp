@@ -267,6 +267,15 @@ void HVH::GetAntiAimDirection( ) {
 		break;
 	}
 
+	if (m_left)
+		m_direction = g_cl.m_cmd->m_view_angles.y + 90.f;
+
+	if (m_right)
+		m_direction = g_cl.m_cmd->m_view_angles.y - 90.f;
+
+	if (m_back)
+		m_direction = g_cl.m_cmd->m_view_angles.y + 180.f;
+
 	// normalize the direction.
 	math::NormalizeAngle( m_direction );
 }
@@ -727,7 +736,7 @@ void HVH::SendPacket( ) {
 			}
 
 			// air.
-			else if( *it == 1 && ( ( g_cl.m_buttons & IN_JUMP ) || !( g_cl.m_flags & FL_ONGROUND ) ) ) {
+			else if( *it == 1 && !( g_cl.m_flags & FL_ONGROUND ) && g_cl.m_ground ) {
 				active = true;
 				break;
 			}
@@ -794,6 +803,9 @@ void HVH::SendPacket( ) {
 
 	// force fake-lag to 14 when fakelagging.
 	if( g_input.GetKeyState( g_menu.main.movement.fakewalk.get( ) ) && g_cl.m_local->GetGroundEntity() && (g_cl.m_flags & FL_ONGROUND)) {
+		
+
+		if (g_menu.main.movement.fakewalk_mode.get() == 0)
 		*g_cl.m_packet = false;
 
 	}

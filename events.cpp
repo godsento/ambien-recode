@@ -18,6 +18,10 @@ void events::weapon_fire(IGameEvent* evt) {
 	if (!g_shots.last_aimbot_data.m_target)
 		return;
 
+
+//	if (g_aimbot.dt_aim && !g_tickshift.m_charged_ticks)
+//		g_aimbot.dt_aim = false;
+
 	// setup new shot data.
 	ShotRecord shot;
 	memcpy(&shot, &g_shots.last_aimbot_data, sizeof(g_shots.last_aimbot_data));
@@ -41,11 +45,18 @@ void events::weapon_fire(IGameEvent* evt) {
 	if (!g_csgo.m_engine->GetPlayerInfo(shot.m_target->index(), &info))
 		return;
 
+
 	// get player name;
 	std::string name = std::string(info.m_name).substr(0, 16);
 
 	int lag_lagcomp = game::TIME_TO_TICKS(shot.m_record->m_lag_time);
 	int lag = game::TIME_TO_TICKS(shot.m_record->m_sim_time - shot.m_record->m_old_sim_time);
+
+
+	// convert string to upper case
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::toupper(c);
+		});
 
 	std::string out{ tfm::format("aimbot fired shot at %s for %i damage, vel[%i:%i] | extrap[%s] | lag[%i]\n",
 								  name, int(shot.m_damage), (int)shot.m_record->m_velocity.length(), (int)shot.m_record->m_anim_velocity.length(), shot.m_record->m_broke_lc ? lag_lagcomp : -1, lag) };

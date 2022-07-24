@@ -155,7 +155,9 @@ public:
 	bool       damage_override;
 
 	bool m_stop;
-
+	bool dt_aim;
+	int  goal_hc;
+	int  last_goal_hc;
 public:
 	__forceinline void reset( ) {
 		// reset aimbot data.

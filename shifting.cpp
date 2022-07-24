@@ -43,6 +43,7 @@ void c_tickshift::handle_doubletap() {
 		m_tick_to_shift = g_cl.goalshift;
 		m_shift_cmd = g_cl.m_cmd->m_command_number;
 		m_shift_tickbase = g_cl.m_local->m_nTickBase();
+		//g_aimbot.dt_aim = true;
 		*g_cl.m_packet = false;
 	}
 
@@ -57,6 +58,7 @@ void CL_Move(float accumulated_extra_samples, bool bFinalTick) {
 		g_tickshift.m_charged_ticks++;
 		if (g_tickshift.m_tick_to_recharge == 0) {
 			g_tickshift.m_charged = true;
+			g_aimbot.dt_aim = false;
 		}
 		return; // increment ticksforprocessing by not creating any usercmd's
 	}

@@ -72,7 +72,7 @@ void render::triangle(vec2_t point_one, vec2_t point_two, vec2_t point_three, Co
 	surface->DrawSetColor(color);
 	surface->DrawSetTexture(texture);
 
-	surface->DrawTexturedPolygon(3, verts);
+	surface->DrawTexturedPolyLine(3, verts);
 }
 
 bool render::WorldToScreen( const vec3_t& world, vec2_t& screen ) {

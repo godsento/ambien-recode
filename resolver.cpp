@@ -129,6 +129,8 @@ void Resolver::PredictBodyUpdates(Player* player, LagRecord* record) {
 				math::NormalizeAngle(record->m_eye_angles.y);
 
 				player->m_angEyeAngles().y = record->m_eye_angles.y;
+
+				record->m_resolver_mode = "flick";
 			}
 		}
 	}
@@ -222,15 +224,21 @@ void Resolver::ResolveWalk( AimPlayer* data, LagRecord* record ) {
 	record->m_eye_angles.y = record->m_body;
 
 	// reset stand and body index.		
-	data->m_last_freestand_scan = record->m_sim_time + 0.22f;
+	record->m_resolver_mode = "moving";
+
+	if (record->m_anim_velocity.length() > 25.f) {
+		data->m_last_freestand_scan = record->m_sim_time + 0.23f;
+	}
 
 	if (record->m_anim_velocity.length() > 30.f) { // niggers
 		data->m_stand_index = 0;
 		data->m_stand_index2 = 0;
 
+
 		if (record->m_anim_velocity.length() > 100.f || record->m_lag > 7) {
 			data->m_body_index = 0;
 			data->m_moving_index = 0;
+			record->m_resolver_mode = "moving (high)";
 		}
 	}
 
@@ -246,12 +254,16 @@ void Resolver::ResolveWalk( AimPlayer* data, LagRecord* record ) {
 void Resolver::anti_freestand(AimPlayer* data, LagRecord* record) {
 	float away = GetAwayAngle(record);
 
+	record->m_resolver_mode = "anti-freestand";
 
-
-	if ((data->tr_right.m_fraction > 0.97f && data->tr_left.m_fraction > 0.97f) || (data->tr_left.m_fraction == data->tr_right.m_fraction) || std::abs(data->tr_left.m_fraction - data->tr_right.m_fraction) <= 0.1f)
+	if ((data->tr_right.m_fraction > 0.97f && data->tr_left.m_fraction > 0.97f) || (data->tr_left.m_fraction == data->tr_right.m_fraction) || std::abs(data->tr_left.m_fraction - data->tr_right.m_fraction) <= 0.1f) {
 		record->m_eye_angles.y = away + 180.f;
-	else
+		record->m_resolver_mode += "(back)";
+	}
+	else {
 		record->m_eye_angles.y = (data->tr_left.m_fraction < data->tr_right.m_fraction) ? away - 90.f : away + 90.f;
+		record->m_resolver_mode += "(side)";
+	}
 }
 
 
@@ -280,19 +292,26 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 		}
 	}
 
+	bool activity = data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence) == 980;
+	float add_lby = activity  ? 0.f : 90.f;
+
+
 	// a valid moving context was found
 	if( data->m_moved ) {
 		float diff = std::abs(math::AngleDiff( record->m_body, move->m_body ));
 		float delta = record->m_anim_time - move->m_anim_time;
 
 		// it has not been time for this first update yet.
-		if( delta < 0.22f && diff < 35.f && data->m_body_index <= 0 && data->m_moving_index <= 0 ) {
+		// activity: test
+		if( (delta < 0.22f || activity) && diff < 35.f && data->m_body_index <= 0 && data->m_moving_index <= 0 ) {
 
 			// set angles to current LBY.
 			record->m_eye_angles.y = record->m_body;
 
 			// set resolve mode.
 			record->m_mode = Modes::RESOLVE_BODY;
+
+			record->m_resolver_mode = tfm::format("pre-stand(%i:%s)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence), std::round(delta * 100) / 100);
 
 			// exit out of the resolver, thats it.
 			return;
@@ -304,16 +323,20 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 			anti_freestand(data, record);
 			break;
 		case 1:
+			record->m_resolver_mode = ("standing(1)");
 			record->m_eye_angles.y = record->m_body + 90.f;
 			break;
 		case 2:
+			record->m_resolver_mode = ("standing(2)");
 			record->m_eye_angles.y = record->m_body - 90.f;
 			break;
-		case 3:
-			record->m_eye_angles.y = record->m_body + 45.f;
+		case 3:  // rotated lby (+)
+			record->m_resolver_mode = tfm::format("standing(3:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
+			record->m_eye_angles.y = record->m_body - (add_lby + 45.f);
 			break;
-		case 4:
-			record->m_eye_angles.y = record->m_body - 45.f;
+		case 4: // rotated lby (-)
+			record->m_resolver_mode = tfm::format("standing(4:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
+			record->m_eye_angles.y = record->m_body + (add_lby + 45.f);
 			break;
 		}
 
@@ -323,33 +346,30 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 	// stand2 -> no known last move.
 	record->m_mode = Modes::RESOLVE_STAND2;
 
-	switch( data->m_stand_index2 % 6 ) {
+	switch( data->m_stand_index2 % 5 ) {
 
-	case 0:
+	case 0: // backward / freestand
 		anti_freestand(data, record);
 		break;
 
-	case 1:
+	case 1: // rotated lby (+)
+		record->m_resolver_mode = "standing(1:1)";
 		record->m_eye_angles.y = record->m_body - 90.f;
 		break;
 
-	case 2:
+	case 2:  // rotated lby (-)
+		record->m_resolver_mode = "standing(1:2)";
 		record->m_eye_angles.y = record->m_body + 90.f;
 		break;
 
-	case 3:
-		record->m_eye_angles.y = record->m_body + 45;
+	case 3:  // rotated lby (+)
+		record->m_resolver_mode = tfm::format("standing(1:3:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
+		record->m_eye_angles.y = record->m_body - (add_lby + 45.f);
 		break;
 
-	case 4:
-		record->m_eye_angles.y = record->m_body - 45.f;
-		break;
-
-	case 5:
-		record->m_eye_angles.y = away;
-		break;
-
-	default:
+	case 4: // rotated lby (-)
+		record->m_resolver_mode = tfm::format("standing(1:4:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
+		record->m_eye_angles.y = record->m_body + (add_lby + 45.f);
 		break;
 	}
 }
@@ -417,6 +437,7 @@ void Resolver::ResolveAir( AimPlayer* data, LagRecord* record ) {
 		// invoke our stand resolver.
 		ResolveStand( data, record );
 
+		record->m_resolver_mode = "air(low)";
 		// we are done.
 		return;
 	}
@@ -425,6 +446,7 @@ void Resolver::ResolveAir( AimPlayer* data, LagRecord* record ) {
 	// this should be a rough estimation of where he is looking.
 	float velyaw = math::rad_to_deg( std::atan2( record->m_velocity.y, record->m_velocity.x ) );
 
+	record->m_resolver_mode = "air";
 	switch( data->m_shots % 3 ) {
 	case 0:
 		record->m_eye_angles.y = velyaw + 180.f;

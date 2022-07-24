@@ -72,6 +72,9 @@ namespace callbacks {
 	void ConfigLoad();
 	void ConfigSave();
 
+	void ToggleLeft();
+	void ToggleRight();
+	void ToggleBack();
 	// weapon configs
 
 	bool DEAGLE( );

@@ -38,6 +38,9 @@ void Hooks::BuildTransformations( int a2, int a3, int a4, int a5, int a6, int a7
 	// cast thisptr to player ptr.
 	Player* player = ( Player* )this;
 
+	if (!player || (player->index() - 1) > 63 || !player->IsPlayer() || !player->alive())
+		return g_hooks.m_BuildTransformations(this, a2, a3, a4, a5, a6, a7);
+
 	// get bone jiggle.
 	int bone_jiggle = *reinterpret_cast< int* >( uintptr_t( player ) + 0x291C );
 
@@ -113,7 +116,7 @@ void Hooks::StandardBlendingRules(int a2, int a3, int a4, int a5, int a6)
 	// cast thisptr to player ptr.
 	Player* player = (Player*)this;
 
-	if (!player || (player->index() - 1) > 63 || player->index() == g_cl.m_local->index())
+	if (!player || (player->index() - 1) > 63 || player->index() == g_cl.m_local->index() || !player->IsPlayer() || !player->alive())
 		return g_hooks.m_StandardBlendingRules(this, a2, a3, a4, a5, a6);
 
 	// disable interpolation.

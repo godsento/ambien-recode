@@ -29,6 +29,7 @@ public:
 
 	Keybind		  double_tap;
 	Slider        double_tap_shift;
+	Slider        double_tap_hc;
 
 	Dropdown      dmg_override_mode;
 	Slider        dmg_override_amount;
@@ -130,6 +131,10 @@ public:
 		double_tap_shift.setup(XOR(""), XOR("doubletap_shift"), 11, 15, false, 0, 13, 1.f, L"t");
 		RegisterElement(&double_tap_shift, 1);
 
+		double_tap_hc.setup(XOR("double tap hit chance"), XOR("double_tap_hc"), 0, 100, true, 0, 50, 1.f, L" % ");
+		RegisterElement(&double_tap_hc, 1);
+
+
 
 		auto_peek.setup(XOR("auto peek"), XOR("auto_peek"));
 		RegisterElement(&auto_peek, 1);
@@ -195,6 +200,11 @@ public:
 	Dropdown desync_mode;
 	Slider  fakeflick_angle;
 	Keybind blackpersonwalk;
+
+	Keybind		  left;
+	Keybind		  right;
+	Keybind		  backward;
+
 public:
 	void init( ) {
 		SetTitle(XOR("anti-aim"), "anti-aimbot features.");
@@ -347,6 +357,20 @@ public:
 		base_angle_air.AddShowCallback( callbacks::IsAntiAimModeAir );
 		base_angle_air.AddShowCallback( callbacks::AirHasYaw );
 		RegisterElement( &base_angle_air );
+
+
+
+		left.setup(("left"), ("left"));
+		left.SetToggleCallback(callbacks::ToggleLeft);
+		RegisterElement(&left);
+
+		right.setup(("right"), ("right"));
+		right.SetToggleCallback(callbacks::ToggleRight);
+		RegisterElement(&right);
+
+		backward.setup(("backward"), ("backward"));
+		backward.SetToggleCallback(callbacks::ToggleBack);
+		RegisterElement(&backward);
 
 		// col2.
 		fake_yaw.setup( XOR( "fake yaw" ), XOR( "fake_yaw" ), { XOR( "off" ), XOR( "default" ), XOR( "relative" ), XOR( "jitter" ), XOR( "rotate" ), XOR( "random" ), XOR( "local view" ) } );

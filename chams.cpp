@@ -449,7 +449,13 @@ void Chams::RenderHistoryChams(int index) {
 		if (!data)
 			return;
 
+		if (data->m_records.empty())
+			return;
+
 		if (data->m_records.front().get()->m_broke_lc)
+			return;
+
+		if (data->m_records.size() <= 1)
 			return;
 
 		// override blend.

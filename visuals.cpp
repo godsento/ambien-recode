@@ -259,8 +259,36 @@ void Visuals::think( ) {
 	Hitmarker( );
 	DrawPlantedC4( );
 	AutomaticPeekIndicator();
+	manual_aa();
 }
 
+void Visuals::manual_aa(){
+
+	vec2_t center{ g_cl.m_width / 2, g_cl.m_height / 2 };
+
+	vec2_t LPx = { (center.x) - 50, (center.y) + 10 };
+	vec2_t LPy = { (center.x) - 50, (center.y) - 10 };
+	vec2_t LPz = { (center.x) - 70, (center.y) };
+
+	vec2_t RPx = { (center.x) + 50, (center.y) + 10 };
+	vec2_t RPy = { (center.x) + 50, (center.y) - 10 };
+	vec2_t RPz = { (center.x) + 70, (center.y) };
+
+	vec2_t BPx = { (center.x) + 10, (center.y) + 50 };
+	vec2_t BPy = { (center.x) - 10, (center.y) + 50 };
+	vec2_t BPz = { (center.x), (center.y) + 70 };
+
+
+	auto color = g_gui.m_color;
+
+	if (g_hvh.m_left)
+		render::triangle(LPx, LPz, LPy, color);
+	else if (g_hvh.m_right)
+		render::triangle(RPy, RPz, RPx, color);
+	else if (g_hvh.m_back)
+		render::triangle(BPy, BPx, BPz, color);
+
+	}
 //do not even dare to make fun of me for this code I am off of 0 fucking sleep for well over 24 hours again
 
 void Visuals::Spectators() {
@@ -276,7 +304,7 @@ void Visuals::Spectators() {
 	if (g_menu.main.visuals.spectators_mode.get() == 0) {
 		render::rect_outlined(g_cl.m_width - 180, g_cl.m_height / 2 + 10, 170, 17, { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 });
 		render::gradient(g_cl.m_width - 180, g_cl.m_height / 2 + 10, 170, 17, { icolor.r(),icolor.g(),icolor.b(), 90 }, { icolor.r(),icolor.g(),icolor.b(), 20 }, true);
-		render::menu.string(g_cl.m_width - 95, g_cl.m_height / 2 + 12, colors::white, XOR("Spectators"), render::ALIGN_CENTER);
+		render::menu.string(g_cl.m_width - 95, g_cl.m_height / 2 + 12, colors::white, XOR("spectators"), render::ALIGN_CENTER);
 	}
 
 	for (int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i) {
@@ -851,7 +879,14 @@ void Visuals::DrawPlayer(Player* player) {
 		// override alpha.
 		clr.a() = low_alpha;
 
-		render::esp.string(box.x + box.w / 2, box.y - render::esp.m_size.m_height, clr, name, render::ALIGN_CENTER);
+		std::string data = name;
+
+		// convert string to upper case
+		std::for_each(data.begin(), data.end(), [](char& c) {
+			c = ::toupper(c);
+			});
+
+		render::esp.string(box.x + box.w / 2, box.y - render::esp.m_size.m_height, clr, data, render::ALIGN_CENTER);
 	}
 
 	// is health esp enabled for this player.
@@ -948,8 +983,15 @@ void Visuals::DrawPlayer(Player* player) {
 
 			int offset = i * (render::esp.m_size.m_height - 1);
 
+			std::string data = f.first;
+
+			// convert string to upper case
+			std::for_each(data.begin(), data.end(), [](char& c) {
+				c = ::toupper(c);
+				});
+
 			// draw flag.
-			render::esp.string(box.x + box.w + 2, box.y + offset, f.second, f.first);
+			render::esp.string(box.x + box.w + 2, box.y + offset, f.second, data);
 		}
 	}
 

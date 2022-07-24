@@ -45,6 +45,7 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 	// reset fakewalk state.
 	record->m_fake_walk = false;
 	record->m_mode = Resolver::Modes::RESOLVE_NONE;
+	record->m_resolver_mode = "none";
 
 	if (m_records.size() >= 2) {
 		// get pointer to previous record.
@@ -757,15 +758,18 @@ void Aimbot::find( ) {
 	}
 }
 
+
+
 bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
 	constexpr float HITCHANCE_MAX = 100.f;
 	int   SEED_MAX = 256;
 
-//	if (g_cl.get_fps() <= 80 && g_menu.main.aimbot.fps.get(0))
-//		SEED_MAX = 128.f;
+	if (g_cl.get_fps() <= 75)
+		SEED_MAX = 128.f;
 
 	Player* m_player = player;
 	LagRecord* record = m_record;
+
 
 
 	const vec3_t backup_origin = m_player->m_vecOrigin();
@@ -795,10 +799,20 @@ bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
 
 	};
 
+	float hc = g_menu.main.aimbot.hitchance_amount.get();
+
+	if (dt_aim)
+		hc = g_menu.main.aimbot.double_tap_hc.get();
+
+	if (g_cl.m_weapon_id == ZEUS)
+		hc = 75.f;
+
+	goal_hc = hc;
+
 	vec3_t     start{ g_cl.m_shoot_pos }, end, fwd, right, up, dir, wep_spread;
 	float      inaccuracy, spread;
 	CGameTrace tr;
-	size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((g_menu.main.aimbot.hitchance_amount.get() * SEED_MAX) / HITCHANCE_MAX)};
+	size_t     total_hits{ }, needed_hits{ (size_t)std::ceil((hc * SEED_MAX) / HITCHANCE_MAX)};
 
 	// get needed directional vectors.
 	math::AngleVectors(angle, &fwd, &right, &up);
@@ -807,6 +821,9 @@ bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
 	inaccuracy = g_cl.m_weapon->GetInaccuracy();
 	spread = g_cl.m_weapon->GetSpread();
 	float recoil_index = g_cl.m_weapon->m_flRecoilIndex();
+
+
+	apply();
 
 
 	// iterate all possible seeds.
@@ -850,13 +867,10 @@ bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
 		viewForward.normalized();
 
 		end = start + (viewForward * g_cl.m_weapon_info->m_range);
-		
-		apply();
 
 		// setup ray and trace.
 		g_csgo.m_engine_trace->ClipRayToEntity(Ray(start, end), MASK_SHOT, player, &tr);
 
-		restore();
 
 
 		// check if we hit a valid player / hitgroup on the player and increment total hits.
@@ -864,15 +878,19 @@ bool Aimbot::CheckHitchance(Player* player, const ang_t& angle) {
 			++total_hits;
 
 		// we made it.
-		if (total_hits >= needed_hits)
+		if (total_hits >= needed_hits) {
+			restore();
 			return true;
+		}
 
 		// we cant make it anymore.
-		if ((SEED_MAX - i + total_hits) < needed_hits)
+		if ((SEED_MAX - i + total_hits) < needed_hits) {
+			restore();
 			return false;
+		}
 	}
 
-
+	restore();
 	return false;
 }
 
@@ -1110,18 +1128,18 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 
 	};
 
-	for (const auto& it : m_hitboxes) {
+	// sup does that(?)
+	// like it caches even before multipoints so i guess we have to do it aswell?
+	apply();
 
-		// sup does that(?)
-		// like it caches even before multipoints so i guess we have to do it aswell?
-		apply();
+	for (const auto& it : m_hitboxes) {
 
 		// setup points on hitbox.
 		SetupHitboxPoints(record, record->m_bones, it.m_index, points);
-
-		// restore matrixes
-		restore();
 	}
+
+	// restore matrixes
+	restore();
 
 	// nothing to do here we are done.
 	if (points.empty())
@@ -1165,6 +1183,9 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 		g_csgo.m_debug_overlay->AddBoxOverlay(point.m_point, vec3_t(-0.5, -0.5, -0.5), vec3_t(0.5, 0.5, 0.5), ang_t(0, 0, 0), col.r(), col.g(), col.b(), 175.f, 0.05);
 	}*/
 
+	// set player matrixes to custom matrixes
+	apply();
+
 	// iterate aimpoints
 	for (HitscanPoint_t& point : points) {
 
@@ -1180,24 +1201,30 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 
 		penetration::PenetrationOutput_t out;
 
-		// set player matrixes to custom matrixes
-		apply();
 
 		if (penetration::run(&in, &out)) {
 
 			// nope we did not hit head..
 			// that prevents from shooting hidden head apparently?
 			// seems retarded but ok
-			if (point.m_index == HITBOX_HEAD && out.m_hitgroup != HITGROUP_HEAD)
+			// actually im wrong that fixes head behind body situations 
+			if (point.m_index <= 2 && out.m_hitgroup != HITGROUP_HEAD) {
 				continue;
+			}
+
+			// faggots who are forward smh
+			if (point.m_index == 7 && out.m_hitgroup == HITGROUP_HEAD) {
+				continue;
+			}
+
 
 			// valid shot, set damage of that point
 			point.m_damage = (int)out.m_damage;
 		}
-
-		// restore matrixes after being done
-		restore();
 	}
+
+	// restore matrixes after being done
+	restore();
 
 	// sort by center
 	std::sort(points.begin(), points.end(), [&](const HitscanPoint_t a, const HitscanPoint_t b) { return (int)a.m_center > (int)b.m_center; });
@@ -1299,6 +1326,17 @@ void Aimbot::apply( ) {
 
 		g_movement.fired_shot = true;
 
+
+
+		if (g_aimbot.dt_aim)
+			g_aimbot.dt_aim = false;
+
+		if (g_tickshift.m_charged_ticks)
+			dt_aim = true;
+
+
+//		g_notify.add(tfm::format("hc on this tick is %i\n", goal_hc));
+
 		if ( m_target ) {
 			// make sure to aim at un-interpolated data.
 			// do this so BacktrackEntity selects the exact record.
@@ -1325,6 +1363,8 @@ void Aimbot::apply( ) {
 
 		// store fired shot.
 		g_shots.StoreLastFireData( m_target ? m_target : nullptr, m_target ? m_damage : -1.f, g_cl.m_weapon_info->m_bullets, m_target ? m_record : nullptr );
+
+	//	last_goal_hc = goal_hc;
 
 		// set that we fired.
 		g_cl.m_shot = true;

@@ -12,13 +12,16 @@ bool LagCompensation::StartPrediction(AimPlayer* data) {
 	if (data->m_player->dormant())
 		return false;
 
+	if (data->m_records.size() <= 1)
+		return false;
+
 	// compute the true amount of updated records
 	// since the last time the player entered pvs.
 	size_t size{};
 
 	// iterate records.
 	for (const auto& it : data->m_records) {
-		if (it->dormant())
+		if (!it->valid())
 			break;
 
 		// increment total amount of data.
@@ -28,19 +31,34 @@ bool LagCompensation::StartPrediction(AimPlayer* data) {
 	// get first record.
 	LagRecord* record = data->m_records[0].get();
 
+
 	// reset all prediction related variables.
 	// this has been a recurring problem in all my hacks lmfao.
 	// causes the prediction to stack on eachother.
 	record->predict();
 
-	if (size > 1) {
+	LagRecord* previous = data->m_records[1].get();
+
+
+	if (!previous || previous->dormant() || previous->immune() || !previous->valid())
+		return false;
+
+	if (size > 1) { // 2 tick on floor
 		if ((record->m_flags & FL_ONGROUND) && (data->m_records[1]->m_flags & FL_ONGROUND))
 			return false;
 	}
 
-	// check if lc broken.
-	if (size > 2 && (data->m_records[1]->m_origin - data->m_records[2]->m_origin).length_sqr() > 4096.f)
-		record->m_broke_lc = true;
+
+	if (data->m_records.size() > 2) {
+
+		LagRecord* previous_ = data->m_records[2].get();
+
+		if (previous_ && !previous_->dormant() && !previous_->immune()) {
+			// check if lc broken.
+			if ((data->m_records[1]->m_origin - data->m_records[2]->m_origin).length_sqr() > 4096.f)
+				record->m_broke_lc = true;
+		}
+	}
 
 	// we are not breaking lagcomp at this point.
 	// return false so it can aim at all the records it once
@@ -63,7 +81,7 @@ bool LagCompensation::StartPrediction(AimPlayer* data) {
 	lag -= 1;
 
 	// clamp this just to be sure.
-	math::clamp(lag, 1, 15);
+	math::clamp(lag, 1, 16);
 
 	// get the delta in ticks between the last server net update
 	// and the net update on which we created this record.
@@ -86,22 +104,18 @@ bool LagCompensation::StartPrediction(AimPlayer* data) {
 	if (record->m_velocity.y != 0.f || record->m_velocity.x != 0.f)
 		dir = math::rad_to_deg(std::atan2(record->m_velocity.y, record->m_velocity.x));
 
-	// we have more than one update
-	// we can compute the direction.
-	if (size > 1) {
-		// get the delta time between the 2 most recent records.
-		float dt = record->m_sim_time - data->m_records[1]->m_sim_time;
+	// get the delta time between the 2 most recent records.
+	float dt = record->m_sim_time - data->m_records[1]->m_sim_time;
 
-		// init to 0.
-		float prevdir = 0.f;
+	// init to 0.
+	float prevdir = 0.f;
 
-		// get the direction of the prevoius velocity.
-		if (data->m_records[1]->m_velocity.y != 0.f || data->m_records[1]->m_velocity.x != 0.f)
-			prevdir = math::rad_to_deg(std::atan2(data->m_records[1]->m_velocity.y, data->m_records[1]->m_velocity.x));
+	// get the direction of the prevoius velocity.
+	if (data->m_records[1]->m_velocity.y != 0.f || data->m_records[1]->m_velocity.x != 0.f)
+		prevdir = math::rad_to_deg(std::atan2(data->m_records[1]->m_velocity.y, data->m_records[1]->m_velocity.x));
 
-		// compute the direction change per tick.
-		change = (math::NormalizedAngle(dir - prevdir) / dt) * g_csgo.m_globals->m_interval;
-	}
+	// compute the direction change per tick.
+	change = (math::NormalizedAngle(dir - prevdir) / dt) * g_csgo.m_globals->m_interval;
 
 	if (std::abs(change) > 6.f)
 		change = 0.f;
@@ -115,7 +129,6 @@ bool LagCompensation::StartPrediction(AimPlayer* data) {
 		std::memcpy(&backup, state, sizeof(CCSGOPlayerAnimState));
 
 	// add in the shot prediction here.
-	int shot = 0;
 	int pred = 0;
 
 	// start our predicton loop.
@@ -223,12 +236,9 @@ bool LagCompensation::StartPrediction(AimPlayer* data) {
 		return true;
 
 	// lagcomp broken, invalidate bones.
-	//record->invalidate( );
-
-	// re-setup bones for this record.
-	//g_bones.setup( data->m_player, nullptr, record );
-
+	record->invalidate( );
 	g_bones.BuildBones(data->m_player, 0x7FF00, record->m_bones, record);
+	record->m_setup = record->m_bones != nullptr;
 
 	return true;
 }

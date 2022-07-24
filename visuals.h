@@ -94,6 +94,7 @@ public:
 	void Hitmarker( );
 	void NoSmoke( );
 	void think( );
+    void manual_aa();
 	void Spectators( );
 	void StatusIndicators( );
     void AutomaticPeekIndicator();

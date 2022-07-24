@@ -369,7 +369,7 @@ void Client::DoMove( ) {
 			continue;
 
 		if (updated_this_tick > 0) {
-			data->m_last_freestand_scan = player->m_flSimulationTime() + 0.3f; // delay it so it doesnt rape our fps (here its 300ms?)
+			data->m_last_freestand_scan = player->m_flSimulationTime() + 0.44f; // delay it so it doesnt rape our fps (here its 300ms?)
 			continue;
 		}
 
@@ -514,6 +514,7 @@ void Client::SetAngles( ) {
 		return;
 
 	// set the nointerp flag.
+	// g_cl.m_local->m_fEffects( ) &= ~EF_NOINTERP;
 	g_cl.m_local->m_fEffects( ) |= EF_NOINTERP;
 
 	// apply the rotation.
@@ -605,11 +606,17 @@ void Client::UpdateInformation( ) {
 	// call original, bypass hook.
 	g_hooks.m_UpdateClientSideAnimation( g_cl.m_local );
 
+	// static legs bs
+	g_cl.m_local->m_flPoseParameter()[6] = 1.f;
+
 	// get last networked poses.
 	g_cl.m_local->GetPoseParameters( g_cl.m_poses );
 
 	// store updated abs yaw.
 	g_cl.m_abs_yaw = state->m_goal_feet_yaw;
+
+	if (g_hvh.m_desync)
+		g_cl.m_abs_yaw = m_body;
 
 	// save updated data.
 	m_rotation = g_cl.m_local->m_angAbsRotation( );

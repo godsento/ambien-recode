@@ -29,6 +29,25 @@ void callbacks::ToggleDesyncInvert() {
 }
 
 
+
+void callbacks::ToggleLeft() {
+	g_hvh.m_left = !g_hvh.m_left;
+	g_hvh.m_right = false;
+	g_hvh.m_back = false;
+}
+
+void callbacks::ToggleRight() {
+	g_hvh.m_right = !g_hvh.m_right;
+	g_hvh.m_left = false;
+	g_hvh.m_back = false;
+}
+
+void callbacks::ToggleBack() {
+	g_hvh.m_back = !g_hvh.m_back;
+	g_hvh.m_left = false;
+	g_hvh.m_right = false;
+
+}
 void callbacks::ToggleFakeLatency( ) {
 	g_aimbot.m_fake_latency = !g_aimbot.m_fake_latency;
 }

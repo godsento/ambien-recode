@@ -428,44 +428,46 @@ void Shots::OnFrameStage()
 			Player* m_player = target;
 			LagRecord* record = it->m_record;
 
-			const vec3_t backup_origin = m_player->m_vecOrigin();
-			const vec3_t backup_abs_origin = m_player->GetAbsOrigin();
-			const ang_t backup_abs_angles = m_player->GetAbsAngles();
-			const vec3_t backup_obb_mins = m_player->m_vecMins();
-			const vec3_t backup_obb_maxs = m_player->m_vecMaxs();
-			const auto backup_cache = m_player->m_BoneCache2();
+			const vec3_t backup_origin = it->m_target->m_vecOrigin();
+			const vec3_t backup_abs_origin = it->m_target->GetAbsOrigin();
+			const ang_t backup_abs_angles = it->m_target->GetAbsAngles();
+			const vec3_t backup_obb_mins = it->m_target->m_vecMins();
+			const vec3_t backup_obb_maxs = it->m_target->m_vecMaxs();
+			const auto backup_cache = it->m_target->m_BoneCache2();
 
 			// quick function
 			auto restore = [&]() -> void {
-				m_player->m_vecOrigin() = backup_origin;
-				m_player->SetAbsOrigin(backup_abs_origin);
-				m_player->SetAbsAngles(backup_abs_angles);
-				m_player->m_vecMins() = backup_obb_mins;
-				m_player->m_vecMaxs() = backup_obb_maxs;
-				m_player->m_BoneCache2() = backup_cache;
+				it->m_target->m_vecOrigin() = backup_origin;
+				it->m_target->SetAbsOrigin(backup_abs_origin);
+				it->m_target->SetAbsAngles(backup_abs_angles);
+				it->m_target->m_vecMins() = backup_obb_mins;
+				it->m_target->m_vecMaxs() = backup_obb_maxs;
+				it->m_target->m_BoneCache2() = backup_cache;
 			};
 
 			auto apply = [&]() -> void {
-				m_player->m_vecOrigin() = record->m_pred_origin;
-				m_player->SetAbsOrigin(record->m_pred_origin);
-				m_player->SetAbsAngles(record->m_abs_ang);
-				m_player->m_vecMins() = record->m_mins;
-				m_player->m_vecMaxs() = record->m_maxs;
-				m_player->m_BoneCache2() = reinterpret_cast<matrix3x4_t**>(record->m_bones);
-
+				it->m_target->m_vecOrigin() = record->m_pred_origin;
+				it->m_target->SetAbsOrigin(record->m_pred_origin);
+				it->m_target->SetAbsAngles(record->m_abs_ang);
+				it->m_target->m_vecMins() = record->m_mins;
+				it->m_target->m_vecMaxs() = record->m_maxs;
+				it->m_target->m_BoneCache2() = reinterpret_cast<matrix3x4_t**>(record->m_bones);
 			};
 
 			CGameTrace trace;
 
 			apply();
 			g_csgo.m_engine_trace->ClipRayToEntity(Ray(start, end), MASK_SHOT, target, &trace);
-			restore();
+		
 
 			if (trace.m_entity != target) {
-				g_notify.add(XOR("missed shot due to spread\n"));
+				g_notify.add("missed shot due to spread\n");
+				restore();
 				it = m_shots.erase(it);
 				continue;
 			}
+
+			restore();
 			
 			size_t mode = it->m_record->m_mode;
 
@@ -486,7 +488,7 @@ void Shots::OnFrameStage()
 			++data->m_missed_shots;
 		
 
-			g_notify.add(XOR("missed shot due to unknown\n"));
+			g_notify.add(tfm::format("missed shot due to unknown, r: %s\n", it->m_record->m_resolver_mode));
 
 			// we processed this shot, let's delete it.
 			it = m_shots.erase(it);
