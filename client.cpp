@@ -1,5 +1,6 @@
 #include "includes.h"
 #include "shifting.h"
+#include "font_array.h"
 
 Client g_cl{ };
 
@@ -11,12 +12,16 @@ ulong_t __stdcall Client::init( void* arg ) {
 	// if not in interwebz mode, the driver will not set the username.
 	g_cl.m_user = XOR("C:\\amb");
 
+
+	AddFontMemResourceEx(WeaponFont, 47320, nullptr, &g_hooks.weapon_icon);
+
 	// stop here if we failed to acquire all the data needed from csgo.
 	if( !g_csgo.init( ) )
 		return 0;
 
 	// welcome the user.
 	g_notify.add( tfm::format( XOR( "welcome to ambien\n" ), g_cl.m_user ) );
+
 
 	return 1;
 }

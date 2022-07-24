@@ -218,7 +218,7 @@ void Visuals::think( ) {
 	if( !g_cl.m_local )
 		return;
 
-	if( g_menu.main.visuals.noscope.get( )
+	if( g_menu.main.visuals.removals.get( 4 )
 		&& g_cl.m_local->alive( )
 		&& g_cl.m_local->GetActiveWeapon( )
 		&& g_cl.m_local->GetActiveWeapon( )->GetWpnData( )->m_weapon_type == CSWeaponType::WEAPONTYPE_SNIPER_RIFLE
@@ -946,10 +946,10 @@ void Visuals::DrawPlayer(Player* player) {
 			// get flag job (pair).
 			const auto& f = flags[i];
 
-			int offset = i * (render::esp_small.m_size.m_height - 1);
+			int offset = i * (render::esp.m_size.m_height - 1);
 
 			// draw flag.
-			render::esp_small.string(box.x + box.w + 2, box.y + offset, f.second, f.first);
+			render::esp.string(box.x + box.w + 2, box.y + offset, f.second, f.first);
 		}
 	}
 
@@ -1061,7 +1061,7 @@ void Visuals::DrawPlayer(Player* player) {
 					else if (g_menu.main.players.weapon_mode.get() == 1) {
 						// icons are super fat..
 						// move them back up.
-						offset -= 5;
+						//offset -= 5;
 
 						std::string icon = tfm::format(("%c"), m_weapon_icons[weapon->m_iItemDefinitionIndex()]);
 						render::cs.string(box.x + box.w / 2, box.y + box.h + offset, { 255, 255, 255, low_alpha }, icon, render::ALIGN_CENTER);

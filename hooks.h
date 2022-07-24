@@ -142,6 +142,7 @@ public:
 	RecvVarProxy_t m_Body_original;
     RecvVarProxy_t m_Force_original;
 	RecvVarProxy_t m_AbsYaw_original;
+	DWORD weapon_icon;
 };
 
 // note - dex; these are defined in player.cpp.

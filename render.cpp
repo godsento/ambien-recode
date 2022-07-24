@@ -15,10 +15,10 @@ void render::init( ) {
 	menu       = Font( XOR( "Tahoma" ), 12, FW_NORMAL, FONTFLAG_OUTLINE );
 	menu_shade = Font( XOR( "Tahoma" ), 12, FW_NORMAL, FONTFLAG_OUTLINE);
 	bold2	   = Font( XOR( "Tahoma" ), 12, FW_HEAVY, FONTFLAG_NONE );
-	esp        = Font( XOR( "Verdana" ), 12, FW_BOLD, FONTFLAG_DROPSHADOW );
+	esp        = Font(XOR("Tahoma"), 12, FW_NORMAL, FONTFLAG_DROPSHADOW);
 	esp_small  = Font( XOR( "Small Fonts" ), 8, FW_NORMAL, FONTFLAG_OUTLINE );
 	hud        = Font( XOR( "Tahoma" ), 16, FW_NORMAL, FONTFLAG_ANTIALIAS );
-	cs         = Font( XOR( "Counter-Strike" ), 28, FW_MEDIUM, FONTFLAG_ANTIALIAS | FONTFLAG_DROPSHADOW );
+	cs         = Font(XOR("undefeated"), 12, FW_MEDIUM, FONTFLAG_ANTIALIAS | FONTFLAG_DROPSHADOW);
 	indicator  = Font( XOR( "Verdana" ), 26, FW_BOLD, FONTFLAG_ANTIALIAS | FONTFLAG_DROPSHADOW );
 }
 

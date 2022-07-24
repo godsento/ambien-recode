@@ -324,6 +324,9 @@
     <ClInclude Include="VMProtectSDK.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="font_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bonesetup.cpp">

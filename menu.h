@@ -809,7 +809,7 @@ public:
 
 		// col2.
 
-		removals.setup(XOR("Removals"), XOR("Removals"), { XOR("Remove Recoil"), XOR("Remove Smoke"), XOR("Remove Fog"), XOR("Remove Flash"), XOR("Remove Scope Border") }, true);
+		removals.setup(XOR("removals"), XOR("Removals"), { XOR("remove recoil"), XOR("remove smoke"), XOR("remove fog"), XOR("remove flash"), XOR("remove scope border") }, true);
 		RegisterElement(&removals, 1);
 
 		fov.setup( XOR( "override fov" ), XOR( "fov" ) );
