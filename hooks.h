@@ -2,6 +2,7 @@
 
 class Hooks {
 public:
+	bool IsPaused();
 	void init( );
 
 public:
@@ -54,6 +55,7 @@ public:
 	using TempEntities_t               = bool( __thiscall* )( void*, void * );
 	using EmitSound_t                  = void( __thiscall* )( void*, IRecipientFilter&, int, int, const char*, unsigned int, const char*, float, float, int, int, int, const vec3_t*, const vec3_t*, void*, bool, float, int );
 	using WriteUsercmdDeltaToBuffer_t  = bool( __thiscall* )( void*, int, bf_write*, int, int, bool );
+	using IsPaused_t = bool(__thiscall*)(void*);
 
 public:
 	bool                     TempEntities( void *msg );

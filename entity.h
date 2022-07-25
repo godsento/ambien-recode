@@ -878,6 +878,15 @@ public:
 		return util::get_method< void(__thiscall *)(decltype(this)) >(this, UPDATECLIENTSIDEANIMATION)(this);
 	}
 
+
+	__forceinline void UpdateClientSideAnimationEx() {
+		auto bClientSideAnimation = this->m_bClientSideAnimation();
+		this->m_bClientSideAnimation() = true; // disable CGlobalVarsBase::curtime interpolation
+		this->UpdateClientSideAnimation(); // ...
+		this->m_bClientSideAnimation() = bClientSideAnimation; // restore
+	}
+
+
 	__forceinline void UpdateCollisionBounds() {
 		return util::get_method< void(__thiscall *)(decltype(this)) >(this, UPDATECOLLISIONBOUNDS)(this);
 	}

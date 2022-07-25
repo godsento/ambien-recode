@@ -62,6 +62,19 @@ void Hooks::UpdateClientSideAnimation( ) {
 	}
 }
 
+
+/*
+
+void Hooks::UpdateClientSideAnimation() {
+	if (!(g_csgo.m_engine->IsInGame() || g_csgo.m_engine->IsConnected()))
+		return;
+
+	if (!g_cl.m_update_local_animation)
+		return;
+
+	g_hooks.m_UpdateClientSideAnimation(this);
+}*/
+
 Weapon *Hooks::GetActiveWeapon( ) {
     Stack stack;
 

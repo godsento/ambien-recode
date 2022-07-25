@@ -22,6 +22,36 @@ void render::init( ) {
 	indicator  = Font( XOR( "Verdana" ), 26, FW_BOLD, FONTFLAG_ANTIALIAS | FONTFLAG_DROPSHADOW );
 }
 
+
+
+void render::Draw3DFilledCircle_Fix(const vec3_t& origin, float radius, Color color)
+{
+	static auto prevScreenPos = vec2_t(0, 0);
+	static auto step = math::pi * 2.0f / 72.0f;
+
+	auto screenPos = vec2_t(0, 0);
+	auto screen = vec2_t(0, 0);
+
+	if (!render::WorldToScreen(origin, screen))
+		return;
+
+	for (auto rotation = 0.0f; rotation <= math::pi * 2.0f; rotation += step) //-V1034
+	{
+		vec3_t pos(radius * cos(rotation) + origin.x, radius * sin(rotation) + origin.y, origin.z);
+
+		if (render::WorldToScreen(pos, screenPos))
+		{
+			if (prevScreenPos != vec2_t(0, 0) && screenPos != vec2_t(0, 0) && prevScreenPos != screenPos)
+			{
+				line(prevScreenPos.x, prevScreenPos.y, screenPos.x, screenPos.y, color);
+				triangle_fix(vec2_t(screen.x, screen.y), vec2_t(screenPos.x, screenPos.y), vec2_t(prevScreenPos.x, prevScreenPos.y), Color(color.r(), color.g(), color.b(), 50));
+			}
+
+			prevScreenPos = screenPos;
+		}
+	}
+}
+
 void render::Draw3DFilledCircle(const vec3_t& origin, float radius, Color color)
 {
 	static auto prevScreenPos = vec2_t(0, 0);
@@ -49,6 +79,33 @@ void render::Draw3DFilledCircle(const vec3_t& origin, float radius, Color color)
 		}
 	}
 }
+
+
+void render::triangle_fix(vec2_t point_one, vec2_t point_two, vec2_t point_three, Color color)
+{
+	if (!g_csgo.m_surface)
+		return;
+
+	//color.SetAlpha(static_cast<int>(color.a() * alpha_factor));
+
+	Vertex verts[3] = {
+		Vertex(point_one),
+		Vertex(point_two),
+		Vertex(point_three)
+	};
+
+	auto surface = g_csgo.m_surface;
+
+	static int texture = surface->CreateNewTextureID(true);
+	unsigned char buffer[4] = { 255, 255, 255, 255 };
+
+	surface->DrawSetTextureRGBA(texture, buffer, 1, 1);
+	surface->DrawSetColor(color);
+	surface->DrawSetTexture(texture);
+
+	surface->DrawTexturedPolygon(3, verts);
+}
+
 
 void render::triangle(vec2_t point_one, vec2_t point_two, vec2_t point_three, Color color)
 {

@@ -34,6 +34,9 @@ public:
 	void UpdateInformation( );
 	void SetAngles( );
 	void UpdateAnimations( );
+	void ApplyUpdatedAnimation();
+	void UpdateLocalAnimations();
+	void update_shit();
 	void KillFeed( );
 
 	void OnPaint( );
@@ -129,6 +132,7 @@ public:
 	float m_goal_feet_yaw_fake;
 	float  pick_random;
 	vec3_t m_unpredicted_vel;
+	bool  m_update_local_animation;
 };
 
 extern Client g_cl;

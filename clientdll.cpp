@@ -15,6 +15,9 @@ void Hooks::LevelInitPreEntity( const char* map ) {
 }
 
 void Hooks::LevelInitPostEntity( ) {
+
+	g_aimbot.reset();
+
 	g_cl.OnMapload( );
 
 	// invoke original method.
@@ -70,6 +73,9 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
 		g_cl.SetAngles( );
 
 		// apply local player animation fix.
+		//g_cl.ApplyUpdatedAnimation();
+
+		// apply local player animation fix.
 		g_cl.UpdateAnimations( );
 
         // draw our custom beams.
@@ -100,10 +106,12 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
         // restore non-compressed netvars.
 		g_netdata.apply( );
 
+		//g_cl.UpdateLocalAnimations();
+
 		// update all players.
 		for( int i{ 1 }; i <= g_csgo.m_globals->m_max_clients; ++i ) {
 			Player* player = g_csgo.m_entlist->GetClientEntity< Player* >( i );
-			if( !player || player->m_bIsLocalPlayer( ) )
+			if( !player || player->m_bIsLocalPlayer( ) || !player->IsPlayer() )
 				continue;
 
 			AimPlayer* data = &g_aimbot.m_players[ i - 1 ];

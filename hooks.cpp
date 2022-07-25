@@ -73,51 +73,20 @@ auto __fastcall ShouldSkipAnimationFrame(void* ecx, void* edx) -> bool {
 }
 
 
-//Attempts to restore (64 tick servers) Simulation time to the exact value it was on the server before it got compressed
-float ExtractLostPrecisionForSimulationTime(float val) {
-	/*
-	char Str1[50];
-	char Str2[50];
 
-	// convert float to string
-	int n = sprintf(Str1, "%f", val);
+bool Hooks::IsPaused() {
+	static DWORD* return_to_extrapolation = (DWORD*)(pattern::find(g_csgo.m_client_dll,
+		XOR("FF D0 A1 ?? ?? ?? ?? B9 ?? ?? ?? ?? D9 1D ?? ?? ?? ?? FF 50 34 85 C0 74 22 8B 0D ?? ?? ?? ??")) + 0x29);
 
-	// find the index of the decimal point in the string
-	int pointLoc = strchr(Str1, '.') - Str1;
+	if (_ReturnAddress() == (void*)return_to_extrapolation)
+		return true;
 
-	// remove leading zeroes from the end of the string (Very fast, 5 iterations at max)
-	int c = n - 1;
-
-	for (; c > pointLoc + 1 && Str1[c] == '0' && Str1[c - 1] == '0'; c--) {
-		Str1[c] = 0;
-	}
-
-	// remove the decimal point from the string
-	memcpy(Str2, Str1, pointLoc);
-	memcpy(Str2 + pointLoc, Str1 + pointLoc + 1, n - (pointLoc + 1) - ((n - 1) - c) + 1);
-
-	// convert the string to an int
-	long long NewLL = atoll(Str2);
-
-	// round the last digit to the nearest multiple of 25
-	long long num25s = round((double)NewLL / 25.0);
-	long long nigNew = num25s * 25;
-
-	// convert the newly rounded int in nigNew to a string
-	n = sprintf(Str1, "%lld", nigNew);
-
-	// add the decimal point back into the int string
-	Str2[pointLoc] = '.';
-
-	// convert the int string back to a floating point string
-	memcpy(Str2, Str1, pointLoc);
-	memcpy(Str2 + pointLoc + 1, Str1 + pointLoc, n - pointLoc + 1);
-
-	// store the result in nig ( Due the the limitations of floating point format, I was unable to see a difference for some values =/,
-	// step through the code in the debugger and you will see how the string version of the float is perfectly rounded, but when it
-	// is converted back to a floating point value, it loses that rounding >:( )
-	return atof(Str2);*/
+	return g_hooks.m_engine.GetOldMethod< IsPaused_t >(IVEngineClient::ISPAUSED)(this);
 }
+
+//
+
+
 
 // thanks for this and the function above sharklazer!
 void ReceivedSimulationTime(CRecvProxyData* pData, void* ent, void* pOut) {
@@ -183,6 +152,7 @@ void Hooks::init( ) {
 	m_engine.init( g_csgo.m_engine );
 	m_engine.add( IVEngineClient::ISCONNECTED, util::force_cast( &Hooks::IsConnected ) );
 	m_engine.add( IVEngineClient::ISHLTV, util::force_cast( &Hooks::IsHLTV ) );
+	m_engine.add( IVEngineClient::ISPAUSED, util::force_cast( &Hooks::IsPaused ) );
 
 //	m_engine_sound.init( g_csgo.m_sound );
 //	m_engine_sound.add( IEngineSound::EMITSOUND, util::force_cast( &Hooks::EmitSound ) );

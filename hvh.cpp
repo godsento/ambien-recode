@@ -424,13 +424,16 @@ void HVH::DoRealAntiAim( ) {
 		// set the yaw to the direction before applying any other operations.
 		g_cl.m_cmd->m_view_angles.y = m_direction;
 
+
+
+
 		bool stand = g_menu.main.antiaim.body_fake_stand.get( ) > 0 && g_cl.m_flags & FL_ONGROUND && g_cl.m_local->m_vecVelocity().length() <= 0.1f;
 
 		// one tick before the update.
 		if( stand && !g_cl.m_lag && g_csgo.m_globals->m_curtime >= ( g_cl.m_body_pred - g_cl.m_anim_frame ) && g_csgo.m_globals->m_curtime < g_cl.m_body_pred ) {
 			// z mode.
 			if( g_menu.main.antiaim.body_fake_stand.get( ) == 4 )
-				g_cl.m_cmd->m_view_angles.y -= 90.f;
+				g_cl.m_cmd->m_view_angles.y -= 120.f;
 		}
 
 		// check if we will have a lby fake this tick.
@@ -464,6 +467,14 @@ void HVH::DoRealAntiAim( ) {
 
 		// run normal aa code.
 		else {
+
+			if (m_desync && g_menu.main.antiaim.ignore_yaw.get(0))
+				return;
+
+			if ((m_left || m_right || m_back) && g_menu.main.antiaim.ignore_yaw.get(1))
+				return;
+
+
 			switch( m_yaw ) {
 
 				// direction.
@@ -953,6 +964,8 @@ void HVH::machport_exploit_shit() {
 
 		g_tickshift.m_tick_to_shift = 0;
 
+		static bool cock = false;
+
 		if (shift_loop == 0) {
 
 			if (g_cl.m_cmd->m_side_move == 0) {
@@ -963,12 +976,16 @@ void HVH::machport_exploit_shit() {
 		
 			}
 
+			cock = !cock;
+
 			g_tickshift.m_tick_to_shift = g_cl.goalshift;
-			g_cl.m_cmd->m_view_angles.y += 180.f;
+			g_cl.m_cmd->m_view_angles.y += cock ? 135.f : -135.f;
 		}
+
+		return;
 	}
 
-	return;
+
 	// if we have a yaw active, which is true if we arrived here.
 // set the yaw to the direction before applying any other operations.
 	if (g_menu.main.antiaim.boxhack_breaker.get() && g_tickshift.m_charged) {

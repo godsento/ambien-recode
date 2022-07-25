@@ -12,7 +12,7 @@ public:
 	Slider		  body_scale;
 	Slider		  minimal_damage;
 	Checkbox      scale_dmg;
-	Checkbox	  penetrate;
+	Checkbox      prefer_center;
 	Slider		  penetrate_minimal_damage;
 
 	// col2.
@@ -65,12 +65,11 @@ public:
 		body_scale.AddShowCallback( callbacks::IsMultipointBodyOn );
 		RegisterElement( &body_scale );
 
+		prefer_center.setup(XOR("prioritize center points"), XOR("prefer_center"));
+		RegisterElement(&prefer_center);
+
 		minimal_damage.setup( XOR( "minimal damage" ), XOR( "minimal_damage" ), 1.f, 126.f, true, 0, 40.f, 1.f );
 		RegisterElement( &minimal_damage );
-
-
-		penetrate.setup( XOR( "penetrate walls" ), XOR( "penetrate" ) );
-		RegisterElement( &penetrate );
 
 		penetrate_minimal_damage.setup( "", XOR( "penetrate_minimal_damage" ), 1.f, 126.f, false, 0, 30.f, 1.f );
 		penetrate_minimal_damage.AddShowCallback( callbacks::IsPenetrationOn );
@@ -197,6 +196,7 @@ public:
 	Dropdown desync_mode;
 	Slider  fakeflick_angle;
 	Keybind blackpersonwalk;
+	MultiDropdown ignore_yaw;
 
 	Keybind		  left;
 	Keybind		  right;
@@ -413,6 +413,9 @@ public:
 		fake_flick_invert.setup(XOR("invert"), XOR("desync_invert"));
 		fake_flick_invert.SetToggleCallback(callbacks::ToggleDesyncInvert);
 		RegisterElement(&fake_flick_invert, 1);
+
+		ignore_yaw.setup("ignore yaw on", XOR("ignore_yaw"), { XOR("desync"), XOR("manual anti-aim") }, true);
+		RegisterElement(&ignore_yaw, 1);
 	}
 };
 
@@ -789,6 +792,7 @@ public:
 	Colorpicker   impact_beams_hurt_color;
 	Slider        impact_beams_time;
 	Keybind       thirdperson;
+	Slider        thirdperson_dist;
 
 public:
 	void init( ) {
@@ -895,6 +899,9 @@ public:
 		thirdperson.setup( XOR( "thirdperson" ), XOR( "thirdperson" ) );
 		thirdperson.SetToggleCallback( callbacks::ToggleThirdPerson );
 		RegisterElement( &thirdperson, 1 );
+
+		thirdperson_dist.setup(XOR(""), XOR("thirdperson_dist"), 50, 300, false, 0, 125, 5, L"units");
+		RegisterElement(&thirdperson_dist, 1);
 	}
 };
 
@@ -2090,46 +2097,30 @@ public:
 	Checkbox killfeed;
 	Checkbox ranks;
 
+	Checkbox aspect_ratio;
+	Slider   aspect_ratio_amt;
+	Checkbox motion_blur;
+
+	Slider mat_motion_blur_rotation_intensity;
+	Slider mat_motion_blur_falling_intensity;
+	Slider mat_motion_blur_strength;
+
 public:
 	void init( ) {
 		SetTitle(XOR("misc"), "misc features");
 
 		buy1.setup( XOR( "auto buy items" ), XOR( "auto_buy1" ),
 			{
-				XOR( "galilar" ),
-				XOR( "famas" ),
-				XOR( "ak47" ),
-				XOR( "m4a1" ),
-				XOR( "m4a1_silencer" ),
 				XOR( "ssg08" ),
-				XOR( "aug" ),
-				XOR( "sg556" ),
 				XOR( "awp" ),
 				XOR( "scar20" ),
 				XOR( "g3sg1" ),
-				XOR( "nova" ),
-				XOR( "xm1014" ),
-				XOR( "mag7" ),
-				XOR( "m249" ),
-				XOR( "negev" ),
-				XOR( "mac10" ),
-				XOR( "mp9" ),
-				XOR( "mp7" ),
-				XOR( "ump45" ),
-				XOR( "p90" ),
-				XOR( "bizon" ),
 			} );
 		RegisterElement( &buy1 );
 
 		buy2.setup( "", XOR( "auto_buy2" ),
 			{
-				XOR( "glock" ),
-				XOR( "hkp2000" ),
-				XOR( "usp_silencer" ),
 				XOR( "elite" ),
-				XOR( "p250" ),
-				XOR( "tec9" ),
-				XOR( "fn57" ),
 				XOR( "deagle" ),
 			}, false );
 		RegisterElement( &buy2 );
@@ -2143,8 +2134,6 @@ public:
 				XOR( "heavyarmor" ),
 				XOR( "molotov" ),
 				XOR( "incgrenade" ),
-				XOR( "decoy" ),
-				XOR( "flashbang" ),
 				XOR( "hegrenade" ),
 				XOR( "smokegrenade" ),
 			}, false );
@@ -2182,6 +2171,27 @@ public:
 		killfeed.setup( XOR( "preserve killfeed" ), XOR( "killfeed" ) );
 		killfeed.SetCallback( callbacks::ToggleKillfeed );
 		RegisterElement( &killfeed, 1 );
+
+		aspect_ratio.setup(XOR("override aspect ratio"), XOR("aspect_ratio"));
+		RegisterElement(&aspect_ratio, 1);
+
+		aspect_ratio_amt.setup(XOR("override aspect ratio"), XOR("aspect_ratiosldr"), 0, 200, false, 0, 0, 10, L"%");
+		RegisterElement(&aspect_ratio_amt, 1);
+
+		motion_blur.setup(XOR("override motion blur"), XOR("motion_blur"));
+		RegisterElement(&motion_blur, 1);
+
+		mat_motion_blur_strength.setup(XOR("motion blur strength"), XOR("motion_blur_strength"), 0, 1000, false, 0, 100, 10, L"%");
+		RegisterElement(&mat_motion_blur_strength, 1);
+
+
+		mat_motion_blur_rotation_intensity.setup(XOR("motion blur rotation intensity"), XOR("mat_motion_blur_rotation_intensity"), 0, 1000, false, 0, 100, 10, L"%");
+		RegisterElement(&mat_motion_blur_rotation_intensity, 1);
+
+		mat_motion_blur_falling_intensity.setup(XOR("motion blur falling intensity"), XOR("mat_motion_blur_falling_intensity"), 0, 1000, false, 0, 100, 10, L"%");
+		RegisterElement(&mat_motion_blur_falling_intensity, 1);
+
+
 	}
 };
 
@@ -2205,7 +2215,7 @@ public:
 	void init( ) {
 		SetTitle(XOR("config"), "load / save configs");
 
-		menu_color.setup( XOR( "menu color" ), XOR( "menu_color" ), Color(125, 165, 255), &g_gui.m_color);
+		menu_color.setup( XOR( "menu color" ), XOR( "menu_color" ), Color(89, 152, 224), &g_gui.m_color);
 		RegisterElement( &menu_color );
 
 		mode.setup( XOR( "safety mode" ), XOR( "mode" ), { XOR( "matchmaking" ), XOR( "no-spread" ) } );

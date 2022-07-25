@@ -497,7 +497,7 @@ void Chams::RenderHistoryChams(int index) {
 		SetupMaterial(matematerial, g_menu.main.players.chams_enemy_history_col.get(), true);
 
 
-		auto last = g_resolver.FindLastRecord(data);
+		auto last = data->m_records.back().get();//g_resolver.FindLastRecord(data);
 
 		// was the matrix properly setup?
 		if (last && !last->dormant()) {

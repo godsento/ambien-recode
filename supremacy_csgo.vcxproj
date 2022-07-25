@@ -307,9 +307,11 @@
     <ClCompile Include="colorpicker.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="edit.cpp" />
+    <ClCompile Include="enemy_animations.cpp" />
     <ClCompile Include="events.cpp" />
     <ClCompile Include="firebullets.cpp" />
     <ClCompile Include="keybind.cpp" />
+    <ClCompile Include="local_animations.cpp" />
     <ClCompile Include="matchframework.cpp" />
     <ClCompile Include="materialsystem.cpp" />
     <ClCompile Include="shadowmgr.cpp" />

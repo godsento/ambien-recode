@@ -128,7 +128,7 @@ bool callbacks::IsHitchanceOn( ) {
 }
 
 bool callbacks::IsPenetrationOn( ) {
-	return g_menu.main.aimbot.penetrate.get( );
+	return true;
 }
 
 bool callbacks::IsMultipointOn( ) {

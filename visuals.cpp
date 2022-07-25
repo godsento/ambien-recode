@@ -124,7 +124,7 @@ void Visuals::ThirdpersonThink( ) {
 		math::AngleVectors( offset, &forward );
 
 		// cam_idealdist convar.
-		offset.z = 150.f;
+		offset.z = g_menu.main.visuals.thirdperson_dist.get();
 
 		// start pos.
 		origin = g_cl.m_shoot_pos;
@@ -583,7 +583,7 @@ void Visuals::DrawProjectile( Weapon* ent ) {
 
 				// grenade range.
 				if( g_menu.main.visuals.proj_range.get( 0 ) )
-					render::sphere( origin, 350.f, 5.f, 1.f, g_menu.main.visuals.proj_range_color.get( ) );
+					render::Draw3DFilledCircle_Fix( origin, 350.f, g_menu.main.visuals.proj_range_color.get( ) );
 
 				render::esp_small.string( screen.x, screen.y, col, XOR( "FRAG" ), render::ALIGN_CENTER );
 			}
@@ -594,7 +594,7 @@ void Visuals::DrawProjectile( Weapon* ent ) {
 	else if( ent->is( HASH( "CInferno" ) ) ) {
 		// fire range.
 		if( g_menu.main.visuals.proj_range.get( 1 ) )
-			render::sphere( origin, 150.f, 5.f, 1.f, g_menu.main.visuals.proj_range_color.get( ) );
+			render::Draw3DFilledCircle_Fix( origin, 150.f, g_menu.main.visuals.proj_range_color.get( ) );
 
 		render::esp_small.string( screen.x, screen.y, col, XOR( "FIRE" ), render::ALIGN_CENTER );
 	}

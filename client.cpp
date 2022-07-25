@@ -69,6 +69,31 @@ void Client::KillFeed( ) {
 }
 
 void Client::OnPaint( ) {
+
+
+	static auto aspect = g_csgo.m_cvar->FindVar(HASH("r_aspectratio"));
+
+	if (g_menu.main.misc.aspect_ratio.get())
+		aspect->SetValue(g_menu.main.misc.aspect_ratio_amt.get() / 100);
+	else
+		aspect->SetValue(0);
+
+	if (g_menu.main.misc.motion_blur.get()) {
+		static auto mat_motion_blur_strength = g_csgo.m_cvar->FindVar(HASH("mat_motion_blur_strength"));
+		static auto mat_motion_blur_enabled = g_csgo.m_cvar->FindVar(HASH("mat_motion_blur_enabled"));
+		static auto mat_motion_blur_rotation_intensity = g_csgo.m_cvar->FindVar(HASH("mat_motion_blur_rotation_intensity"));
+		static auto mat_motion_blur_falling_intensity = g_csgo.m_cvar->FindVar(HASH("mat_motion_blur_falling_intensity"));
+
+		mat_motion_blur_enabled->SetValue(1);
+		mat_motion_blur_strength->SetValue(g_menu.main.misc.mat_motion_blur_strength.get() / 100);
+		mat_motion_blur_rotation_intensity->SetValue(g_menu.main.misc.mat_motion_blur_rotation_intensity.get() / 100);
+		mat_motion_blur_rotation_intensity->SetValue(g_menu.main.misc.mat_motion_blur_falling_intensity.get() / 100);
+	}
+	else {
+		static auto mat_motion_blur_enabled = g_csgo.m_cvar->FindVar(HASH("mat_motion_blur_enabled"));
+		mat_motion_blur_enabled->SetValue(0);
+	}
+
 	// update screen size.
 	g_csgo.m_engine->GetScreenSize( m_width, m_height );
 
@@ -438,7 +463,13 @@ void Client::DoMove( ) {
 
 void Client::EndMove( CUserCmd* cmd ) {
 	// update client-side animations.
-	UpdateInformation( );
+	 UpdateInformation( );
+	//update_shit();
+
+	//if (!g_cl.m_lag) {
+		//m_angle = g_cl.m_cmd->m_view_angles;
+
+//	}
 
 	// if matchmaking mode, anti untrust clamp.
 	if( g_menu.main.config.mode.get( ) == 0 )
@@ -493,6 +524,7 @@ void Client::OnTick( CUserCmd* cmd ) {
 		g_csgo.ServerRankRevealAll( &msg );
 	}
 
+
 	// store some data and update prediction.
 	StartMove( cmd );
 
@@ -520,125 +552,6 @@ void Client::OnTick( CUserCmd* cmd ) {
 	if (!g_tickshift.m_shifting) {
 		g_tickshift.handle_doubletap();
 	}
-}
-
-void Client::SetAngles( ) {
-	if( !g_cl.m_local || !g_cl.m_processing )
-		return;
-
-	// set the nointerp flag.
-	// g_cl.m_local->m_fEffects( ) &= ~EF_NOINTERP;
-	g_cl.m_local->m_fEffects( ) |= EF_NOINTERP;
-
-	// apply the rotation.
-	g_cl.m_local->SetAbsAngles( m_rotation );
-	g_cl.m_local->m_angRotation( ) = m_rotation;
-	g_cl.m_local->m_angNetworkAngles( ) = m_rotation;
-
-	// set radar angles.
-	if( g_csgo.m_input->CAM_IsThirdPerson( ) )
-		g_csgo.m_prediction->SetLocalViewAngles( m_radar );
-}
-
-void Client::UpdateAnimations( ) {
-	if( !g_cl.m_local || !g_cl.m_processing )
-		return;
-
-	CCSGOPlayerAnimState* state = g_cl.m_local->m_PlayerAnimState( );
-	if( !state )
-		return;
-
-	// prevent model sway on player.
-	g_cl.m_local->m_AnimOverlay( )[ 12 ].m_weight = 0.f;
-
-	// update animations with last networked data.
-	g_cl.m_local->SetPoseParameters( g_cl.m_poses );
-
-
-	//if (g_hvh.m_desync)
-		//g_cl.m_abs_yaw += (bool)g_csgo.RandomInt(0, 1) ? g_csgo.RandomFloat(90.f, 145.f) : -g_csgo.RandomFloat(90.f, 145.f);
-
-	// update abs yaw with last networked abs yaw.
-	g_cl.m_local->SetAbsAngles( ang_t( 0.f, g_cl.m_abs_yaw, 0.f ) );
-}
-
-void Client::UpdateInformation( ) {
-
-	CCSGOPlayerAnimState* state = g_cl.m_local->m_PlayerAnimState();
-	if (!state)
-		return;
-
-
-	if (g_cl.m_lag > 0) {
-		m_goal_feet_yaw_fake = state->m_goal_feet_yaw;
-		return;
-	}
-
-
-
-	// update time.
-	m_anim_frame = g_csgo.m_globals->m_curtime - m_anim_time;
-	m_anim_time = g_csgo.m_globals->m_curtime;
-
-	// current angle will be animated.
-	m_angle = g_cl.m_cmd->m_view_angles;
-
-	// fix landing anim.
-	if( state->m_land && !state->m_dip_air && state->m_dip_cycle > 0.f && g_cl.m_flags & FL_ONGROUND )
-		m_angle.x = -12.f;
-
-	math::clamp( m_angle.x, -90.f, 90.f );
-	m_angle.normalize( );
-
-
-//	if (g_hvh.m_desync)
-//		m_angle.y = g_hvh.m_direction;
-
-	// write angles to model.
-	g_csgo.m_prediction->SetLocalViewAngles( m_angle );
-
-	if (state->m_speed > 0.1f) {
-		if (state->m_ground)
-			m_body = m_angle.y;
-
-		m_body_pred = m_anim_time + 0.22f;
-	}
-
-	// standing update every 1.1s
-	else if (m_anim_time >= m_body_pred) {
-		m_body = m_angle.y;
-		m_body_pred = m_anim_time + 1.1f;
-	}
-
-	// set lby to predicted value.
-//	if (!g_hvh.m_desync)
-		g_cl.m_local->m_flLowerBodyYawTarget( ) = m_body;
-//	else
-//		g_cl.m_local->m_flLowerBodyYawTarget() = math::NormalizedAngle(g_csgo.RandomFloat(360, -360));
-
-	// CCSGOPlayerAnimState::Update, bypass already animated checks.
-	if( state->m_frame >= g_csgo.m_globals->m_frame )
-		state->m_frame -= 1;
-
-	// call original, bypass hook.
-	g_hooks.m_UpdateClientSideAnimation( g_cl.m_local );
-
-	// static legs bs
-	g_cl.m_local->m_flPoseParameter()[6] = 1.f;
-
-	// get last networked poses.
-	g_cl.m_local->GetPoseParameters( g_cl.m_poses );
-
-//	if (g_hvh.m_desync)
-//		state->m_goal_feet_yaw = m_angle.y - pick_random;
-
-	// store updated abs yaw.
-	g_cl.m_abs_yaw = state->m_goal_feet_yaw;
-
-	// save updated data.
-	m_rotation = g_cl.m_local->m_angAbsRotation( );
-	m_speed = state->m_speed;
-	m_ground = state->m_ground;
 }
 
 void Client::print( const std::string text, ... ) {
