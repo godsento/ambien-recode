@@ -91,27 +91,52 @@ void Grenades::paint( ) {
 				target.second = player;
 			}
 		}
+		else if (m_id == MOLOTOV) {
+
+			// is within damage radius?
+			if (delta.length() > 350.f)
+				continue;
+
+			// check if our path was obstructed by anything using a trace.
+			g_csgo.m_engine_trace->TraceRay(Ray(prev, center), MASK_SHOT, (ITraceFilter*)&filter, &trace);
+
+			// something went wrong here.
+			if (!trace.m_entity || trace.m_entity != player)
+				continue;
+
+			// better target?
+			if (center.dist_to(prev) < target.first) {
+				target.first = center.dist_to(prev);
+				target.second = player;
+			}
+		}
 	}
 
 	// we have a target for damage.
-	if( target.second ) {
+	if( target.second && target.first ) {
 		vec2_t screen;
 
-		// replace the last bounce with green.
-		if( !m_bounces.empty( ) )
-			m_bounces.back( ).color = { 0, 255, 0, 255 };
+		if (m_id == HEGRENADE) {
+			// replace the last bounce with green.
+			if (!m_bounces.empty())
+				m_bounces.back().color = { 0, 255, 0, 255 };
 
-		if( render::WorldToScreen( prev, screen ) )
-			render::esp_small.string( screen.x, screen.y + 5, { 255, 255, 255, 0xb4 }, tfm::format( XOR( "%i" ), ( int )target.first ), render::ALIGN_CENTER );
+			if (render::WorldToScreen(prev, screen))
+				render::esp_small.string(screen.x, screen.y + 5, { 255, 255, 255, 0xb4 }, tfm::format(XOR("%i"), (int)target.first), render::ALIGN_CENTER);
+		}
+		else {
+			if (render::WorldToScreen(prev, screen))
+				render::esp_small.string(screen.x, screen.y + 5, { 255, 255, 255, 0xb4 }, tfm::format(XOR("HIT")), render::ALIGN_CENTER);
+		}
 	}
-
+	/*
 	// render bounces.
 	for( const auto& b : m_bounces ) {
 		vec2_t screen;
 
 		if( render::WorldToScreen( b.point, screen ) )
 			render::rect( screen.x - 2, screen.y - 2, 4, 4, b.color );
-	}
+	}*/
 }
 
 void Grenades::think( ) {

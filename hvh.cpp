@@ -928,6 +928,47 @@ bool HVH::desync_shit() {
 }
 bool boxhackbreaker_flip;
 void HVH::machport_exploit_shit() {
+
+
+	static int shift_loop { 1 };
+	static bool weird_shit{ 0 };
+	if (g_menu.main.antiaim.shift_aa.get() && g_tickshift.m_charged_ticks) {
+		++shift_loop;
+
+		if (shift_loop > g_cl.goalshift)
+			shift_loop = 0;
+
+		weird_shit = !weird_shit;
+
+
+
+		static bool boxhackbreaker_for_flip = false;
+		g_cl.m_cmd->m_forward_move = boxhackbreaker_for_flip ? 13.37 : -13.37;
+		boxhackbreaker_for_flip = !boxhackbreaker_for_flip;
+
+		static bool boxhackbreaker_side_flip = false;
+		g_cl.m_cmd->m_side_move = boxhackbreaker_side_flip ? 13.37 : -13.37;
+		boxhackbreaker_side_flip = !boxhackbreaker_side_flip;
+
+
+		g_tickshift.m_tick_to_shift = 0;
+
+		if (shift_loop == 0) {
+
+			if (g_cl.m_cmd->m_side_move == 0) {
+	
+
+			}
+			if (g_cl.m_cmd->m_forward_move == 0) {
+		
+			}
+
+			g_tickshift.m_tick_to_shift = g_cl.goalshift;
+			g_cl.m_cmd->m_view_angles.y += 180.f;
+		}
+	}
+
+	return;
 	// if we have a yaw active, which is true if we arrived here.
 // set the yaw to the direction before applying any other operations.
 	if (g_menu.main.antiaim.boxhack_breaker.get() && g_tickshift.m_charged) {
@@ -943,6 +984,7 @@ void HVH::machport_exploit_shit() {
 			static bool boxhackbreaker_side_flip = false;
 			g_cl.m_cmd->m_side_move = boxhackbreaker_side_flip ? 3.25 : -3.25;
 			boxhackbreaker_side_flip = !boxhackbreaker_side_flip;
+	
 		}
 		if (g_cl.m_cmd->m_forward_move == 0) {
 			static bool boxhackbreaker_for_flip = false;
@@ -951,7 +993,7 @@ void HVH::machport_exploit_shit() {
 		}
 		boxhackbreaker_flip = !boxhackbreaker_flip;
 		m_direction -= boxhackbreaker_flip ? (120 * (g_hvh.m_desync_invert ? -1 : 1)) : 0;
-		g_tickshift.m_tick_to_shift_alternate = boxhackbreaker_flip ? 16 : 0;
+		g_tickshift.m_tick_to_shift = boxhackbreaker_flip ? 16 : 0;
 		g_cl.m_cmd->m_view_angles.y = m_direction;
 	}
 	g_cl.m_cmd->m_view_angles.y = m_direction;

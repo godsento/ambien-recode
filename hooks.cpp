@@ -31,6 +31,7 @@ void AbsYaw_proxy( CRecvProxyData *data, Address ptr, Address out ) {
 		g_hooks.m_AbsYaw_original( data, ptr, out );
 }
 
+
 void Force_proxy( CRecvProxyData *data, Address ptr, Address out ) {
 	// convert to ragdoll.
 	Ragdoll *ragdoll = ptr.as< Ragdoll * >( );
@@ -72,6 +73,92 @@ auto __fastcall ShouldSkipAnimationFrame(void* ecx, void* edx) -> bool {
 }
 
 
+//Attempts to restore (64 tick servers) Simulation time to the exact value it was on the server before it got compressed
+float ExtractLostPrecisionForSimulationTime(float val) {
+	/*
+	char Str1[50];
+	char Str2[50];
+
+	// convert float to string
+	int n = sprintf(Str1, "%f", val);
+
+	// find the index of the decimal point in the string
+	int pointLoc = strchr(Str1, '.') - Str1;
+
+	// remove leading zeroes from the end of the string (Very fast, 5 iterations at max)
+	int c = n - 1;
+
+	for (; c > pointLoc + 1 && Str1[c] == '0' && Str1[c - 1] == '0'; c--) {
+		Str1[c] = 0;
+	}
+
+	// remove the decimal point from the string
+	memcpy(Str2, Str1, pointLoc);
+	memcpy(Str2 + pointLoc, Str1 + pointLoc + 1, n - (pointLoc + 1) - ((n - 1) - c) + 1);
+
+	// convert the string to an int
+	long long NewLL = atoll(Str2);
+
+	// round the last digit to the nearest multiple of 25
+	long long num25s = round((double)NewLL / 25.0);
+	long long nigNew = num25s * 25;
+
+	// convert the newly rounded int in nigNew to a string
+	n = sprintf(Str1, "%lld", nigNew);
+
+	// add the decimal point back into the int string
+	Str2[pointLoc] = '.';
+
+	// convert the int string back to a floating point string
+	memcpy(Str2, Str1, pointLoc);
+	memcpy(Str2 + pointLoc + 1, Str1 + pointLoc, n - pointLoc + 1);
+
+	// store the result in nig ( Due the the limitations of floating point format, I was unable to see a difference for some values =/,
+	// step through the code in the debugger and you will see how the string version of the float is perfectly rounded, but when it
+	// is converted back to a floating point value, it loses that rounding >:( )
+	return atof(Str2);*/
+}
+
+// thanks for this and the function above sharklazer!
+void ReceivedSimulationTime(CRecvProxyData* pData, void* ent, void* pOut) {
+
+	if (g_hooks.m_SimulationTime_original) {
+
+		//g_cl.print("boop?");
+		g_hooks.m_SimulationTime_original(pData, ent, pOut);
+	}
+
+	/*
+	float time = (uintptr_t)pOut;
+	Entity* pent = (Entity*)ent;
+	if (pOut && pent && pent->IsPlayer() && pent != g_cl.m_local) {
+
+		AimPlayer* m_player = &g_aimbot.m_players[pent->index() - 1];
+
+		if (m_player && g_aimbot.IsValidTarget(m_player->m_player)) {
+
+			// we should have at least two records while doing this to compare this too
+			if (m_player->m_records.size() >= 2 && !m_player->m_records.empty()) { 
+
+				// don't do this on the local player, i mean we shouldn't be keeping records of the local player anyways but still.
+				if (pent != g_cl.m_local) {
+
+					// do this for every record.
+					for (const auto& records : m_player->m_records) { 
+						// extract exact simulation time to what it was before it was compressed.
+						if (g_csgo.m_globals->m_interval == (1.0f / 64.0f))
+							time = ExtractLostPrecisionForSimulationTime(time); 
+
+					//	g_cl.print("bud we fixing that simtime ong");
+
+						records->m_sim_time = time; // set our simtime records to this.
+					}
+				}
+			}
+		}
+	}*/
+}
+
 void Hooks::init( ) {
 
 	MH_Initialize();
@@ -97,8 +184,8 @@ void Hooks::init( ) {
 	m_engine.add( IVEngineClient::ISCONNECTED, util::force_cast( &Hooks::IsConnected ) );
 	m_engine.add( IVEngineClient::ISHLTV, util::force_cast( &Hooks::IsHLTV ) );
 
-	m_engine_sound.init( g_csgo.m_sound );
-	m_engine_sound.add( IEngineSound::EMITSOUND, util::force_cast( &Hooks::EmitSound ) );
+//	m_engine_sound.init( g_csgo.m_sound );
+//	m_engine_sound.add( IEngineSound::EMITSOUND, util::force_cast( &Hooks::EmitSound ) );
 
 	m_prediction.init( g_csgo.m_prediction );
 	m_prediction.add( CPrediction::INPREDICTION, util::force_cast( &Hooks::InPrediction ) );
@@ -156,6 +243,7 @@ void Hooks::init( ) {
 	m_net_show_fragments.add( ConVar::GETBOOL, util::force_cast( &Hooks::NetShowFragmentsGetBool ) );
 
 	// set netvar proxies.
+	g_netvars.SetProxy(HASH("DT_CSPlayer"), HASH("m_flSimulationTime"), ReceivedSimulationTime, m_SimulationTime_original);
 	g_netvars.SetProxy( HASH( "DT_CSPlayer" ), HASH( "m_angEyeAngles[0]" ), Pitch_proxy, m_Pitch_original );
 	g_netvars.SetProxy( HASH( "DT_CSPlayer" ), HASH( "m_flLowerBodyYawTarget" ), Body_proxy, m_Body_original );
 	g_netvars.SetProxy( HASH( "DT_CSRagdoll" ), HASH( "m_vecForce" ), Force_proxy, m_Force_original );

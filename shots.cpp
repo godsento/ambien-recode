@@ -10,6 +10,9 @@ void Shots::StoreLastFireData(Player* target, float damage, int bullets, LagReco
 	last_aimbot_data.m_damage = damage;
 	last_aimbot_data.m_pos = g_cl.m_shoot_pos;
 	last_aimbot_data.m_range = g_cl.m_weapon_info->m_range;
+
+	if (record)
+		last_aimbot_data.m_record->backtrack_amount = g_csgo.m_globals->m_tick_count - game::TIME_TO_TICKS(record->m_sim_time);
 }
 
 void Shots::OnImpact( IGameEvent *evt ) {
@@ -240,7 +243,11 @@ void Shots::OnHurt( IGameEvent *evt ) {
 		return;
 
 	// get player name;
-	name = std::string( info.m_name ).substr( 0, 24 );
+	name = std::string( info.m_name ).substr(0, 16 );
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
 
 	// get damage reported by the server.
 	damage = ( float )evt->m_keys->FindKey( HASH( "dmg_health" ) )->GetInt( );

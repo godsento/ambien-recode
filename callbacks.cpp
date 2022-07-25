@@ -583,7 +583,7 @@ bool callbacks::KNIFE_SHADOW_DAGGERS( ) {
 }
 
 bool callbacks::AUTO_STOP( ) {
-	return !g_menu.main.movement.autostop_always_on.get();
+	return false;
 }
 
 void callbacks::ToggleDoubletap() {

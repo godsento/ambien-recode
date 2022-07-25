@@ -883,7 +883,7 @@ void Visuals::DrawPlayer(Player* player) {
 
 		// convert string to upper case
 		std::for_each(data.begin(), data.end(), [](char& c) {
-			c = ::toupper(c);
+			c = ::tolower(c);
 			});
 
 		render::esp.string(box.x + box.w / 2, box.y - render::esp.m_size.m_height, clr, data, render::ALIGN_CENTER);
@@ -987,7 +987,7 @@ void Visuals::DrawPlayer(Player* player) {
 
 			// convert string to upper case
 			std::for_each(data.begin(), data.end(), [](char& c) {
-				c = ::toupper(c);
+				c = ::tolower(c);
 				});
 
 			// draw flag.

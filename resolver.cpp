@@ -41,9 +41,7 @@ LagRecord* Resolver::FindLastRecord( AimPlayer* data ) {
 	return nullptr;
 }
 
-void Resolver::OnBodyUpdate( Player* player, float value ) {
-
-}
+void Resolver::OnBodyUpdate( Player* player, float value ) { }
 
 float Resolver::GetAwayAngle(LagRecord* record) {
 	float  delta{ std::numeric_limits< float >::max() };
@@ -324,11 +322,11 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 			break;
 		case 1:
 			record->m_resolver_mode = ("standing(1)");
-			record->m_eye_angles.y = record->m_body + 90.f;
+			record->m_eye_angles.y = away + 140.f;
 			break;
 		case 2:
 			record->m_resolver_mode = ("standing(2)");
-			record->m_eye_angles.y = record->m_body - 90.f;
+			record->m_eye_angles.y = away - 140.f;
 			break;
 		case 3:  // rotated lby (+)
 			record->m_resolver_mode = tfm::format("standing(3:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
@@ -354,12 +352,12 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 
 	case 1: // rotated lby (+)
 		record->m_resolver_mode = "standing(1:1)";
-		record->m_eye_angles.y = record->m_body - 90.f;
+		record->m_eye_angles.y = away + 140.f;
 		break;
 
 	case 2:  // rotated lby (-)
 		record->m_resolver_mode = "standing(1:2)";
-		record->m_eye_angles.y = record->m_body + 90.f;
+		record->m_eye_angles.y = away - 140.f;
 		break;
 
 	case 3:  // rotated lby (+)

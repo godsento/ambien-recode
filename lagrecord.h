@@ -72,6 +72,7 @@ public:
 	// other stuff.
 	float  m_interp_time;
 	std::string m_resolver_mode;
+	int   backtrack_amount; // set later
 public:
 
 	// default ctor.
@@ -187,20 +188,22 @@ public:
 			return false;
 
 		// use prediction curtime for this.
-		float curtime = game::TICKS_TO_TIME( g_cl.m_local->m_nTickBase( ) );
+		//float curtime = game::TICKS_TO_TIME( g_cl.fixed_tickbase );
+		float curtime = game::TICKS_TO_TIME( g_cl.m_local->m_nTickBase() );
 
 		// correct is the amount of time we have to correct game time,
-		float correct = g_cl.m_lerp + g_cl.m_latency;
-
-		// stupid fake latency goes into the incoming latency.
-		float in = g_csgo.m_net->GetLatency( INetChannel::FLOW_INCOMING );
-		correct += in;
+		float correct = g_cl.m_lerp;
+		correct += g_csgo.m_net->GetLatency(INetChannel::FLOW_OUTGOING);
+		correct += g_csgo.m_net->GetLatency(INetChannel::FLOW_INCOMING);
 
 		// check bounds [ 0, sv_maxunlag ]
 		math::clamp( correct, 0.f, g_csgo.sv_maxunlag->GetFloat( ) );
 
-		// calculate difference between tick sent by player and our latency based tick.
-		// ensure this record isn't too old.
-		return std::abs(correct - (curtime - m_sim_time)) <= 0.2f;
+		auto delta_time = correct - (curtime - m_sim_time);
+
+		if (fabs(delta_time) > 0.2f)
+			return false;
+
+		return true;
 	}
 };

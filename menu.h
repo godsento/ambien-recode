@@ -17,11 +17,8 @@ public:
 
 	// col2.
 	Dropdown      zoom;
-	Checkbox      nospread;
-	Checkbox      norecoil;
 	Slider	      hitchance_amount;
 	Checkbox      lagfix;
-	Checkbox	  correct;
 	MultiDropdown baim1;
 	MultiDropdown baim2;
 	Slider        baim_hp;
@@ -37,6 +34,9 @@ public:
 	
 	Keybind       auto_peek;
 
+	Checkbox	  auto_stop;
+	MultiDropdown auto_stop_mode;
+
 public:
 	void init( ) {
 		// title.
@@ -51,10 +51,10 @@ public:
 		selection.setup( XOR( "target selection" ), XOR( "selection" ), { XOR("distance"), XOR("crosshair"),  XOR("health") });
 		RegisterElement( &selection );
 
-		hitbox.setup( XOR( "hitbox" ), XOR( "hitbox" ), { XOR( "head" ), XOR( "chest" ), XOR( "body" ), XOR( "arms" ), XOR( "legs" ) } );
+		hitbox.setup( XOR( "hitbox" ), XOR( "hitbox" ), { XOR( "head" ), XOR( "chest" ), XOR( "stomach" ), XOR( "arms" ), XOR( "legs" ) } );
 		RegisterElement( &hitbox );
 
-		multipoint.setup( XOR( "multi-point" ), XOR( "multipoint" ), { XOR( "head" ), XOR( "chest" ), XOR( "body" ), XOR( "legs" ) } );
+		multipoint.setup( XOR( "multi-point" ), XOR( "multipoint" ), { XOR( "head" ), XOR( "chest" ), XOR( "stomach" ), XOR( "legs" ) } );
 		RegisterElement( &multipoint );
 
 		scale.setup( "", XOR( "hitbox_scale" ), 1.f, 100.f, false, 0, 90.f, 1.f, XOR( L"%" ) );
@@ -94,13 +94,6 @@ public:
 		zoom.setup( XOR( "auto scope" ), XOR( "zoom" ), { XOR( "off" ), XOR( "always" ), XOR( "hitchance fail" ) } );
 		RegisterElement( &zoom, 1 );
 
-		nospread.setup( XOR( "compensate spread" ), XOR( "nospread" ) );
-		nospread.AddShowCallback( callbacks::IsConfigNS );
-		RegisterElement( &nospread, 1 );
-
-		norecoil.setup( XOR( "compensate recoil" ), XOR( "norecoil" ) );
-		RegisterElement( &norecoil, 1 );
-
 		hitchance_amount.setup( "hit chance", XOR( "hitchance_amount" ), 0.f, 100.f, true, 0, 50.f, 1.f, XOR( L"%" ) );
 		hitchance_amount.AddShowCallback( callbacks::IsConfigMM );
 		RegisterElement( &hitchance_amount, 1 );
@@ -108,13 +101,10 @@ public:
 		lagfix.setup( XOR( "predict fake-lag" ), XOR( "lagfix" ) );
 		RegisterElement( &lagfix, 1 );
 
-		correct.setup( XOR( "correct anti-aim" ), XOR( "correct" ) );
-		RegisterElement( &correct, 1 );
-
-		baim1.setup(XOR("prefer body-aim"), XOR("baim1"), { XOR("always"),  XOR("fake"), XOR("in air") });
+		baim1.setup(XOR("prefer body-aim"), XOR("baim1"), { XOR("always"),  XOR("fake"), XOR("in air"), "double tap"});
 		RegisterElement(&baim1, 1);
 
-		baim2.setup(XOR("force body-aim"), XOR("baim2"), { XOR("always"), XOR("health"), XOR("fake"), XOR("in air") });
+		baim2.setup(XOR("force body-aim"), XOR("baim2"), { XOR("always"), XOR("health"), XOR("fake"), XOR("in air"), "double tap" });
 		RegisterElement(&baim2, 1);
 
 		baim_hp.setup("", XOR("baim_hp"), 1.f, 100.f, false, 0, 20.f, 1.f, XOR(L"hp"));
@@ -128,7 +118,7 @@ public:
 		double_tap.SetToggleCallback(callbacks::ToggleDoubletap);
 		RegisterElement(&double_tap, 1);
 
-		double_tap_shift.setup(XOR(""), XOR("doubletap_shift"), 11, 15, false, 0, 13, 1.f, L"t");
+		double_tap_shift.setup(XOR(""), XOR("doubletap_shift"), 11, 18, false, 0, 13, 1.f, L"t");
 		RegisterElement(&double_tap_shift, 1);
 
 		double_tap_hc.setup(XOR("double tap hit chance"), XOR("double_tap_hc"), 0, 100, true, 0, 50, 1.f, L" % ");
@@ -138,6 +128,12 @@ public:
 
 		auto_peek.setup(XOR("auto peek"), XOR("auto_peek"));
 		RegisterElement(&auto_peek, 1);
+
+		auto_stop.setup(XOR("auto stop"), XOR("auto_stop"));
+		RegisterElement(&auto_stop, 1);
+
+		auto_stop_mode.setup(XOR(""), XOR("auto_stop_mode"), { "slow-motion", "between shots", "force accuracy" }, false);
+		RegisterElement(&auto_stop_mode, 1);
 
 	}
 };
@@ -194,6 +190,7 @@ public:
 
 	Keybind lag_exploit;
 	Checkbox       boxhack_breaker;
+	Checkbox       shift_aa;
 
 	Keybind fake_flick;
 	Keybind fake_flick_invert;
@@ -404,6 +401,10 @@ public:
 		RegisterElement(&lag_exploit, 1);
 		boxhack_breaker.setup(XOR("experimental"), XOR("break_boxhack"));
 		RegisterElement(&boxhack_breaker, 1);
+
+		shift_aa.setup(XOR("shift_aa"), XOR("shift_aa"));
+		RegisterElement(&shift_aa, 1);
+
 		fake_flick.setup(XOR("fake flick"), XOR("desync_legs"));
 		fake_flick.SetToggleCallback(callbacks::ToggleDesync);
 		RegisterElement(&fake_flick, 1);
@@ -910,8 +911,7 @@ public:
 
 	Keybind  fakewalk;
 	Keybind  autopeek;
-	Keybind  autostop;
-	Checkbox autostop_always_on;
+
 
 	Dropdown fakewalk_mode;
 	Slider   desync_ticks;
@@ -958,16 +958,8 @@ public:
 		desync_ticks.setup(XOR("ticks"), XOR("desyncticks"), 10, 40, false, 0, 20, 1, XOR(L"t"));
 		RegisterElement(&desync_ticks, 1);
 
-
 		autopeek.setup( XOR( "automatic peek" ), XOR( "autopeek" ) );
 		RegisterElement( &autopeek, 1 );
-
-		autostop_always_on.setup( XOR( "automatic stop always on" ), XOR( "auto_stop_always" ) );
-		RegisterElement( &autostop_always_on, 1 );
-
-		autostop.setup( XOR( "automatic stop" ), XOR( "autostop" ) );
-		autostop.AddShowCallback( callbacks::AUTO_STOP );
-		RegisterElement( &autostop, 1 );
 	}
 };
 

@@ -128,6 +128,7 @@ public:
 	int  goalshift;
 	float m_goal_feet_yaw_fake;
 	float  pick_random;
+	vec3_t m_unpredicted_vel;
 };
 
 extern Client g_cl;

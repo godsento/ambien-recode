@@ -87,6 +87,7 @@ void MultiDropdown::draw() {
 			}
 		}
 
+
 		// no items.
 		if (!m_active_items.size()) {
 			render::menu.string(p.x + 8, p.y + m_offset + 2, { 152, 152, 152, m_parent->m_alpha }, XOR("none"));
@@ -158,8 +159,10 @@ void MultiDropdown::think() {
 		}
 
 		// closed.
-		else
+		else {
+
 			m_h = m_offset + DROPDOWN_BOX_HEIGHT;
+		}
 	}
 
 	// no items, no open.

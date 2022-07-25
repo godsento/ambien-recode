@@ -396,11 +396,7 @@ void LagCompensation::PredictAnimations(CCSGOPlayerAnimState* state, LagRecord* 
 	if (state->m_frame >= g_csgo.m_globals->m_frame)
 		state->m_frame -= 1;
 
-	bool fake = g_menu.main.aimbot.correct.get();
-
-	// rerun the resolver since we edited the origin.
-	if (fake)
-		g_resolver.ResolveAngles(player, record);
+	g_resolver.ResolveAngles(player, record);
 
 	// update animations.
 	game::UpdateAnimationState(state, record->m_eye_angles);

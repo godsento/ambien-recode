@@ -452,6 +452,11 @@ void Chams::RenderHistoryChams(int index) {
 		if (data->m_records.empty())
 			return;
 
+
+		if (data->m_records.front().get()->dormant())
+			return;
+
+
 		if (data->m_records.front().get()->m_broke_lc)
 			return;
 
@@ -492,15 +497,17 @@ void Chams::RenderHistoryChams(int index) {
 		SetupMaterial(matematerial, g_menu.main.players.chams_enemy_history_col.get(), true);
 
 
+		auto last = g_resolver.FindLastRecord(data);
+
 		// was the matrix properly setup?
-		if (data->m_records.back().get()) {
+		if (last && !last->dormant()) {
 
 
 			// backup the bone cache before we fuck with it.
 			auto backup_bones = player->m_BoneCache().m_pCachedBones;
 
 			// replace their bone cache with our custom one.
-			player->m_BoneCache().m_pCachedBones = data->m_records.back().get()->m_bones;
+			player->m_BoneCache().m_pCachedBones = last->m_bones;
 
 			// manually draw the model.
 			player->DrawModel();

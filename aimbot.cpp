@@ -51,7 +51,7 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 		// get pointer to previous record.
 		LagRecord* previous = m_records[1].get();
 
-		if (previous && previous->valid()) {
+		if (previous && !previous->dormant()) {
 
 			auto e = m_player;
 			vec3_t velocity = m_player->m_vecVelocity();
@@ -166,7 +166,7 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 			// get pointer to previous record.
 			LagRecord* previous = m_records[1].get();
 
-			if (previous && !previous->valid()) {
+			if (previous && !previous->dormant()) {
 
 				// jumpfall.
 				bool bOnGround = record->m_flags & FL_ONGROUND;
@@ -217,8 +217,8 @@ void AimPlayer::UpdateAnimations(LagRecord* record) {
 		}
 	}
 
-	bool fake = !bot && g_menu.main.aimbot.correct.get();
 
+	bool fake = !bot && record->m_lag > 0;
 	// if using fake angles, correct angles.
 	if (fake)
 		g_resolver.ResolveAngles(m_player, record);
@@ -365,8 +365,8 @@ void AimPlayer::OnNetUpdate(Player* player) {
 	while (m_records.size() > 3 && m_records.front().get() && m_records.front().get()->m_broke_lc)
 		m_records.pop_back();
 
-	while (m_records.size() > 1 && !m_records.back().get()->valid())
-		m_records.pop_back();
+	//while (m_records.size() > 4 && !m_records.back().get()->valid())
+	//	m_records.pop_back();
 
 	while (m_records.size() > (int)std::round(1.f / g_csgo.m_globals->m_interval))
 		m_records.pop_back();
@@ -417,6 +417,12 @@ void AimPlayer::SetupHitboxes(LagRecord* record) {
 	if (g_menu.main.aimbot.baim1.get(2) && !(record->m_pred_flags & FL_ONGROUND))
 		m_prefer_body = true;
 
+	bool dt = g_aimbot.dt_aim || g_tickshift.m_charged_ticks;
+
+	// prefer, in air.
+	if (g_menu.main.aimbot.baim1.get(3) && dt)
+		m_prefer_body = true;
+
 	bool only{ false };
 
 	// only, always.
@@ -433,6 +439,10 @@ void AimPlayer::SetupHitboxes(LagRecord* record) {
 
 	// only, in air.
 	if (g_menu.main.aimbot.baim2.get(3) && !(record->m_pred_flags & FL_ONGROUND))
+		only = true;
+
+	// only, in air.
+	if (g_menu.main.aimbot.baim2.get(4) && dt)
 		only = true;
 
 	// only, on key.
@@ -547,10 +557,12 @@ bool Aimbot::should_shoot() {
 	if (single && !tick_shift && !tick_shift2 && g_tickshift.m_double_tap)
 		return false;
 
+	bool between_shots = g_menu.main.aimbot.auto_stop_mode.get(1);
+
 	if (!can_shoot && !auto_)
 		return false;
 
-	if (auto_ && !can_shoot && !g_tickshift.m_charged && !tick_shift)
+	if (auto_ && !can_shoot && !g_tickshift.m_charged && !tick_shift && !between_shots)
 		return false;
 
 	return true;
@@ -586,11 +598,12 @@ void Aimbot::think( ) {
 
 	// we have a normal weapon or a non cocking revolver
 	// choke if its the processing tick.
+	/*
 	if ( g_cl.m_weapon_fire && !g_cl.m_lag && !revolver && !g_tickshift.m_double_tap) {
 		*g_cl.m_packet = false;
 		StripAttack( );
 		return;
-	}
+	}*/
 #endif
 
 	if (!should_shoot())
@@ -608,7 +621,13 @@ void Aimbot::think( ) {
 	find( );
 
 
-	if (!g_cl.m_weapon_fire)
+	bool auto_ = g_cl.m_weapon_id == G3SG1 || g_cl.m_weapon_id == SCAR20 || g_cl.m_weapon_info->m_is_full_auto;
+	bool tick_shift = g_cl.m_weapon->m_flNextPrimaryAttack() <= g_csgo.m_globals->m_curtime - game::TICKS_TO_TIME(14);
+	bool tick_shift2 = g_cl.m_weapon->m_flNextPrimaryAttack() <= game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase() - 14);
+	
+
+	bool should_strip = !auto_ && !g_cl.m_weapon_fire || (!tick_shift && !tick_shift2 && !g_cl.m_weapon_fire);
+	if (should_strip)
 		StripAttack();
 
 	// finally set data when shooting.
@@ -659,16 +678,16 @@ void Aimbot::find( ) {
 		// player did not break lagcomp.
 		// history aim is possible at this point.
 		else {
-
+			
 			if (t->m_records.front().get()->m_broke_lc)
 				continue;
 
 			LagRecord *ideal = g_resolver.FindIdealRecord( t );
 
-			if (!ideal)
+			if ( !ideal )
 				ideal = t->m_records.front().get();
 
-			if ( !ideal || !ideal->valid() )
+			if ( !ideal )
 				continue;
 
 			t->SetupHitboxes( ideal );
@@ -686,14 +705,15 @@ void Aimbot::find( ) {
 				best.record = ideal;
 				break;
 			}
-
+			
 			LagRecord *last = g_resolver.FindLastRecord( t );
-			if (!last || last == ideal || !last->valid()) {
+			/*
+			if (!last || last == ideal) {
 				if (ideal != t->m_records.front().get())
 					last = t->m_records.front().get();
-			}
+			}*/
 
-			if (!last || !last->valid())
+			if (!last || last == ideal)
 				continue;
 
 			t->SetupHitboxes( last );
@@ -712,6 +732,12 @@ void Aimbot::find( ) {
 		}
 	}
 
+
+	// set autostop shit.
+	m_stop = (g_cl.m_flags & FL_ONGROUND) && g_cl.m_ground && best.player && g_menu.main.aimbot.auto_stop.get();
+
+
+
 	// verify our target and set needed data.
 	if ( best.player && best.record ) {
 		// calculate aim angle.
@@ -723,14 +749,19 @@ void Aimbot::find( ) {
 		m_damage = best.damage;
 		m_record = best.record;
 
-		// set autostop shit.
-		m_stop = ( g_cl.m_flags & FL_ONGROUND ) && g_cl.m_ground;
-
 		bool on = g_menu.main.aimbot.hitchance_amount.get( ) && g_menu.main.config.mode.get( ) == 0;
 		bool hit = on && CheckHitchance( m_target, m_angle );
 
 		// if we can scope.
 		bool can_scope = !g_cl.m_local->m_bIsScoped( ) && ( g_cl.m_weapon_id == AUG || g_cl.m_weapon_id == SG553 || g_cl.m_weapon_type == WEAPONTYPE_SNIPER_RIFLE );
+
+		float flMaxSpeed = g_cl.m_local->m_bIsScoped() > 0 ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
+
+
+		bool accurate_speed = (g_cl.m_unpredicted_vel.length() <= flMaxSpeed / 3) || (g_cl.m_local->m_vecVelocity().length() <= flMaxSpeed / 3);
+
+		if (!accurate_speed && !hit && g_menu.main.aimbot.auto_stop_mode.get(2))
+			return;
 
 		if ( can_scope ) {
 			// always.
@@ -1098,6 +1129,9 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 			pendmg = hp + (pendmg - 100);
 
 		pen = g_menu.main.aimbot.penetrate.get( );
+
+		if (g_menu.main.aimbot.scale_dmg.get() && hp < 15.f)
+			dmg = pendmg = hp;
 	}
 
 
@@ -1217,6 +1251,9 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 				continue;
 			}
 
+			if (out.m_damage < 15.f && !point.m_center)
+				continue;
+
 
 			// valid shot, set damage of that point
 			point.m_damage = (int)out.m_damage;
@@ -1228,6 +1265,15 @@ bool AimPlayer::GetBestAimPosition( vec3_t &aim, float &damage, LagRecord *recor
 
 	// sort by center
 	std::sort(points.begin(), points.end(), [&](const HitscanPoint_t a, const HitscanPoint_t b) { return (int)a.m_center > (int)b.m_center; });
+
+	// sort by lethal
+	std::sort(points.begin(), points.end(), [&](const HitscanPoint_t a, const HitscanPoint_t b) { 
+		bool lethal_a = a.m_damage >= m_player->m_iHealth() && a.m_index > 2;
+		bool lethal_b = b.m_damage >= m_player->m_iHealth() && b.m_index > 2;
+
+		return (int)lethal_a > (int)lethal_b;
+		});
+
 
 	// woo, future bestpoint!!
 	HitscanPoint_t* best_point = nullptr;
@@ -1353,18 +1399,10 @@ void Aimbot::apply( ) {
 			g_visuals.DrawHitboxMatrix( m_record, colors::white, 1.f );
 		}
 
-		// nospread.
-		if ( g_menu.main.aimbot.nospread.get( ) && g_menu.main.config.mode.get( ) == 1 )
-			NoSpread( );
-
-		// norecoil.
-		if ( g_menu.main.aimbot.norecoil.get( ) )
-			g_cl.m_cmd->m_view_angles -= g_cl.m_local->m_aimPunchAngle( ) * g_csgo.weapon_recoil_scale->GetFloat( );
+		g_cl.m_cmd->m_view_angles -= g_cl.m_local->m_aimPunchAngle( ) * g_csgo.weapon_recoil_scale->GetFloat( );
 
 		// store fired shot.
 		g_shots.StoreLastFireData( m_target ? m_target : nullptr, m_target ? m_damage : -1.f, g_cl.m_weapon_info->m_bullets, m_target ? m_record : nullptr );
-
-	//	last_goal_hc = goal_hc;
 
 		// set that we fired.
 		g_cl.m_shot = true;
@@ -1372,15 +1410,5 @@ void Aimbot::apply( ) {
 }
 
 void Aimbot::NoSpread( ) {
-	bool    attack2;
-	vec3_t  spread, forward, right, up, dir;
-
-	// revolver state.
-	attack2 = ( g_cl.m_weapon_id == REVOLVER && ( g_cl.m_cmd->m_buttons & IN_ATTACK2 ) );
-
-	// get spread.
-	spread = g_cl.m_weapon->CalculateSpread( g_cl.m_cmd->m_random_seed, attack2 );
-
-	// compensate.
-	g_cl.m_cmd->m_view_angles -= { -math::rad_to_deg( std::atan( spread.length_2d( ) ) ), 0.f, math::rad_to_deg( std::atan2( spread.x, spread.y ) ) };
+	
 }

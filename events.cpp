@@ -55,11 +55,11 @@ void events::weapon_fire(IGameEvent* evt) {
 
 	// convert string to upper case
 	std::for_each(name.begin(), name.end(), [](char& c) {
-		c = ::toupper(c);
+		c = ::tolower(c);
 		});
 
-	std::string out{ tfm::format("aimbot fired shot at %s for %i damage, vel[%i:%i] | extrap[%s] | lag[%i]\n",
-								  name, int(shot.m_damage), (int)shot.m_record->m_velocity.length(), (int)shot.m_record->m_anim_velocity.length(), shot.m_record->m_broke_lc ? lag_lagcomp : -1, lag) };
+	std::string out{ tfm::format("aimbot fired shot at %s for %i damage, vel[%i:%i] | extrap[%s] | lag[%i] | bt[%i]\n",
+								  name, int(shot.m_damage), (int)shot.m_record->m_velocity.length(), (int)shot.m_record->m_anim_velocity.length(), shot.m_record->m_broke_lc ? lag_lagcomp : -1, lag, shot.m_record->backtrack_amount) };
 	g_cl.print(out, true);
 
 	// add to tracks.
@@ -193,7 +193,13 @@ void events::item_purchase( IGameEvent* evt ) {
 	if( weapon == XOR( "weapon_unknown" ) )
 		return;
 
-	std::string out = tfm::format( XOR( "%s bought %s\n" ), std::string{ info.m_name }.substr( 0, 24 ), weapon );
+	std::string name = info.m_name;
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
+
+	std::string out = tfm::format( XOR( "%s bought %s\n" ), std::string{ name }.substr( 0, 16 ), weapon );
 	g_notify.add( out );
 }
 
@@ -220,7 +226,13 @@ void events::player_given_c4( IGameEvent* evt ) {
 	if( !g_csgo.m_engine->GetPlayerInfo( index, &info ) )
 		return;
 
-	std::string out = tfm::format( XOR( "%s received the bomb\n" ), std::string{ info.m_name }.substr( 0, 24 ) );
+	std::string name = info.m_name;
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
+
+	std::string out = tfm::format( XOR( "%s received the bomb\n" ), std::string{ name }.substr( 0, 16 ) );
 	g_notify.add( out );
 }
 
@@ -239,7 +251,13 @@ void events::bomb_beginplant( IGameEvent* evt ) {
 	if( !g_csgo.m_engine->GetPlayerInfo( index, &info ) )
 		return;
 
-	std::string out = tfm::format( XOR( "%s started planting the bomb\n" ), std::string{ info.m_name }.substr( 0, 24 ) );
+	std::string name = info.m_name;
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
+
+	std::string out = tfm::format( XOR( "%s started planting the bomb\n" ), std::string{ name }.substr( 0, 16 ) );
 	g_notify.add( out );
 }
 
@@ -258,7 +276,13 @@ void events::bomb_abortplant( IGameEvent* evt ) {
 	if( !g_csgo.m_engine->GetPlayerInfo( index, &info ) )
 		return;
 
-	std::string out = tfm::format( XOR( "%s stopped planting the bomb\n" ),  std::string{ info.m_name }.substr( 0, 24 ) );
+	std::string name = info.m_name;
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
+
+	std::string out = tfm::format( XOR( "%s stopped planting the bomb\n" ),  std::string{ name }.substr( 0, 16 ) );
 	g_notify.add( out );
 }
 
@@ -286,7 +310,14 @@ void events::bomb_planted( IGameEvent* evt ) {
     else {
         g_csgo.m_engine->GetPlayerInfo( player_index, &info );
 
-        out = tfm::format( XOR( "the bomb was planted at %s by %s\n" ), site_name.c_str( ), std::string( info.m_name ).substr( 0, 24 ) );
+
+		std::string name = info.m_name;
+
+		std::for_each(name.begin(), name.end(), [](char& c) {
+			c = ::tolower(c);
+			});
+
+        out = tfm::format( XOR( "the bomb was planted at %s by %s\n" ), site_name.c_str( ), std::string(name).substr( 0, 16 ) );
     }
 
 	g_notify.add( out );
@@ -366,13 +397,19 @@ void events::bomb_begindefuse( IGameEvent* evt ) {
 
 	bool kit = evt->m_keys->FindKey( HASH( "haskit" ) )->GetBool( );
 
+	std::string name = info.m_name;
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
+
 	if( kit ) {
-		std::string out = tfm::format( XOR( "%s started defusing with a kit\n" ), std::string( info.m_name ).substr( 0, 24 ) );
+		std::string out = tfm::format( XOR( "%s started defusing with a kit\n" ), std::string( name ).substr(0, 16 ) );
 		g_notify.add( out );
 	}
 
 	else {
-		std::string out = tfm::format( XOR( "%s started defusing without a kit\n" ), std::string( info.m_name ).substr( 0, 24 ) );
+		std::string out = tfm::format( XOR( "%s started defusing without a kit\n" ), std::string(name).substr(0, 16 ) );
 		g_notify.add( out );
 	}
 }
@@ -391,7 +428,14 @@ void events::bomb_abortdefuse( IGameEvent* evt ) {
 	if( !g_csgo.m_engine->GetPlayerInfo( index, &info ) )
 		return;
 
-	std::string out = tfm::format( XOR( "%s stopped defusing\n" ), std::string( info.m_name ).substr( 0, 24 ) );
+	std::string name = info.m_name;
+
+	std::for_each(name.begin(), name.end(), [](char& c) {
+		c = ::tolower(c);
+		});
+
+
+	std::string out = tfm::format( XOR( "%s stopped defusing\n" ), std::string(name).substr(0, 16 ) );
 	g_notify.add( out );
 }
 

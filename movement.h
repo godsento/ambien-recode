@@ -27,6 +27,8 @@ public:
 	void AutoPeek( );
 	void QuickStop( );
 	void FakeWalk( );
+	void InstantStop( );
+	void RotateMovement(CUserCmd* pCmd, ang_t& angOldViewPoint);
 	void ClampMovementSpeed(float speed);
 };
 

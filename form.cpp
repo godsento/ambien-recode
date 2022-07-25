@@ -66,7 +66,7 @@ void Form::draw() {
 	render::gradient(m_x, m_y + m_height - 40, m_width / 2, 1, { 0,0,0,0 }, color, true);
 	render::gradient(m_x + m_width / 2, m_y + m_height - 40, m_width / 2, 1, color, { 0,0,0,0 }, true);
 	Rect tabs_area = GetTabsRect();
-	render::menu_shade.string(tabs_area.x + tabs_area.w - 8, tabs_area.y + 9, { 255,255,255, (int)std::floor(50 * m_fast_anim_step) }, "debug | v3.1", render::ALIGN_RIGHT);
+	render::menu_shade.string(tabs_area.x + tabs_area.w - 8, tabs_area.y + 9, { 255,255,255, (int)std::floor(50 * m_fast_anim_step) }, "debug | v4", render::ALIGN_RIGHT);
 	// draw tabs if we have any.
 	if (!m_tabs.empty()) {
 		// tabs background and border.

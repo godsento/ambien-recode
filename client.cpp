@@ -27,7 +27,7 @@ ulong_t __stdcall Client::init( void* arg ) {
 }
 
 void Client::DrawHUD( ) {
-	if( !g_csgo.m_engine->IsInGame( ) )
+	if( !g_csgo.m_engine->IsInGame( ) || !g_csgo.m_engine->IsConnected() )
 		return;
 
 	static const std::string text = "ambien recode | debug";
@@ -36,11 +36,11 @@ void Client::DrawHUD( ) {
 
 
 	// background
-	render::rect_outlined(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { menu.r(), menu.g(), menu.b(), 90 }, false);
-	render::gradient(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { menu.r(), menu.g(), menu.b(), 90 }, { menu.r(), menu.g(), menu.b(), 20 }, false);
+	render::rect_outlined(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { menu.r(), menu.g(), menu.b(), 180 }, false);
+	render::gradient(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { menu.r(), menu.g(), menu.b(), 180 }, { menu.r(), menu.g(), menu.b(), 40 }, false);
 
 	// text
-	render::menu.string(m_width - 15, 10, { 255, 255, 255, 150 }, text, render::ALIGN_RIGHT);
+	render::esp.string(m_width - 15, 10, { 255, 255, 255, 225 }, text, render::ALIGN_RIGHT);
 }
 
 void Client::KillFeed( ) {
@@ -75,7 +75,7 @@ void Client::OnPaint( ) {
 	// render stuff.
 	g_visuals.think( );
 	g_grenades.paint( );
-	g_notify.think( );
+	g_notify.think(g_gui.m_color);
 
 	DrawHUD( );
 	KillFeed( );
@@ -269,7 +269,7 @@ void Client::StartMove( CUserCmd* cmd ) {
 	m_flags = m_local->m_fFlags( );
 	max_bt = 0.2f;//g_tickshift.m_double_tap ? (g_tickshift.m_charged_ticks / 14.f * 0.1f) : 0.2f;
 
-	goalshift = g_menu.main.aimbot.double_tap_shift.get();
+	goalshift =  g_menu.main.aimbot.double_tap_shift.get();
 	// ...
 	m_shot = false;
 }
@@ -289,8 +289,15 @@ void Client::DoMove( ) {
 	g_movement.JumpRelated( );
 	g_movement.Strafe( );
 	g_movement.FakeWalk( );
-	g_movement.AutoPeek( );
+
+
+	if (g_aimbot.m_stop)
+		g_movement.AutoPeek();
+
+//	g_movement.AutoPeek( );
 	g_movement.AutoPeek(g_cl.m_cmd, m_strafe_angles.y);
+
+	m_unpredicted_vel = m_local->m_vecVelocity();
 
 	// predict input.
 	g_inputpred.run( );

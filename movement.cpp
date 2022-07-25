@@ -17,6 +17,83 @@ void Movement::JumpRelated( ) {
 	}
 }
 
+void Movement::RotateMovement(CUserCmd* pCmd, ang_t& angOldViewPoint) {
+	// get max speed limits by convars
+	const float flMaxForwardSpeed = 450.f;
+	const float flMaxSideSpeed = 450.f;
+	const float flMaxUpSpeed = 320.f;
+
+	vec3_t vecForward = { }, vecRight = { }, vecUp = { };
+	math::AngleVectors(angOldViewPoint, &vecForward, &vecRight, &vecUp);
+
+	// we don't attempt on forward/right roll, and on up pitch/yaw
+	vecForward.z = vecRight.z = vecUp.x = vecUp.y = 0.f;
+
+	vecForward.normalize();
+	vecRight.normalize();
+	vecUp.normalize();
+
+	vec3_t vecOldForward = { }, vecOldRight = { }, vecOldUp = { };
+	math::AngleVectors(pCmd->m_view_angles, &vecOldForward, &vecOldRight, &vecOldUp);
+
+	// we don't attempt on forward/right roll, and on up pitch/yaw
+	vecOldForward.z = vecOldRight.z = vecOldUp.x = vecOldUp.y = 0.f;
+
+	vecOldForward.normalize();
+	vecOldRight.normalize();
+	vecOldUp.normalize();
+
+	const float flPitchForward = vecForward.x * pCmd->m_forward_move;
+	const float flYawForward = vecForward.y * pCmd->m_forward_move;
+	const float flPitchSide = vecRight.x * pCmd->m_side_move;
+	const float flYawSide = vecRight.y * pCmd->m_side_move;
+	const float flRollUp = vecUp.z * pCmd->m_up_move;
+
+	// solve corrected movement
+	const float x = vecOldForward.x * flPitchSide + vecOldForward.y * flYawSide + vecOldForward.x * flPitchForward + vecOldForward.y * flYawForward + vecOldForward.z * flRollUp;
+	const float y = vecOldRight.x * flPitchSide + vecOldRight.y * flYawSide + vecOldRight.x * flPitchForward + vecOldRight.y * flYawForward + vecOldRight.z * flRollUp;
+	const float z = vecOldUp.x * flYawSide + vecOldUp.y * flPitchSide + vecOldUp.x * flYawForward + vecOldUp.y * flPitchForward + vecOldUp.z * flRollUp;
+
+	// clamp and apply corrected movement
+	pCmd->m_forward_move = std::clamp(x, -flMaxForwardSpeed, flMaxForwardSpeed);
+	pCmd->m_side_move = std::clamp(y, -flMaxSideSpeed, flMaxSideSpeed);
+	pCmd->m_up_move = std::clamp(z, -flMaxUpSpeed, flMaxUpSpeed);
+}
+
+void Movement::InstantStop() {
+	float maxSpeed = g_cl.m_local->m_bIsScoped() > 0 ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
+	vec3_t velocity = g_cl.m_local->m_vecVelocity();
+	velocity.z = 0.0f;
+
+	float speed = velocity.length_2d();
+
+
+	float flMaxSpeed = g_cl.m_local->m_bIsScoped() > 0 ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
+
+
+	if (velocity.length_2d() < flMaxSpeed / 3) {
+		ClampMovementSpeed(flMaxSpeed / 3);
+		return;
+	}
+
+	float playerSurfaceFriction = g_cl.m_local->m_surfaceFriction();
+	float max_accelspeed = g_csgo.m_cvar->FindVar(HASH("sv_accelerate"))->GetFloat() * g_csgo.m_globals->m_interval * maxSpeed * playerSurfaceFriction;
+	if (speed - max_accelspeed <= -1.f) {
+		g_cl.m_cmd->m_forward_move = speed / max_accelspeed;
+	}
+	else {
+		g_cl.m_cmd->m_forward_move = 450.f;
+	}
+
+	g_cl.m_cmd->m_side_move = 0.0f;
+
+	ang_t move_dir = g_cl.m_strafe_angles;
+
+	float direction = atan2(velocity.y, velocity.x);
+	move_dir.y = std::remainderf(math::rad_to_deg(direction) + 180.0f, 360.0f);
+	RotateMovement(g_cl.m_cmd, move_dir);
+}
+
 void Movement::Strafe() {
 	vec3_t velocity;
 	float  delta, abs_delta, velocity_delta, correct;
@@ -496,29 +573,17 @@ void Movement::FixMove( CUserCmd *cmd, const ang_t &wish_angles ) {
 }
 
 void Movement::AutoPeek( ) {
-	// set to invert if we press the button.
-	if( g_input.GetKeyState( g_menu.main.movement.autopeek.get( ) ) ) {
-		if( g_cl.m_old_shot )
-			m_invert = true;
 
-		vec3_t move{ g_cl.m_cmd->m_forward_move, g_cl.m_cmd->m_side_move, 0.f };
-
-		if( m_invert ) {
-			move *= -1.f;
-			g_cl.m_cmd->m_forward_move = move.x;
-			g_cl.m_cmd->m_side_move = move.y;
-		}
-	}
-
-	else m_invert = false;
-
-	bool can_stop = g_menu.main.movement.autostop_always_on.get( ) || ( !g_menu.main.movement.autostop_always_on.get( ) && g_input.GetKeyState( g_menu.main.movement.autostop.get( ) ) );
-	if( ( g_input.GetKeyState( g_menu.main.movement.autopeek.get( ) ) || can_stop ) && g_aimbot.m_stop ) {
-		Movement::QuickStop( );
-	}
+	Movement::QuickStop( );
 }
 
 void Movement::QuickStop( ) {
+
+	if (g_menu.main.aimbot.auto_stop_mode.get(0)) {
+		InstantStop();
+		return;
+	}
+
 	// convert velocity to angular momentum.
 	ang_t angle;
 	math::VectorAngles( g_cl.m_local->m_vecVelocity( ), angle );
@@ -567,10 +632,10 @@ void Movement::FakeWalk( ) {
 
 		float flMaxSpeed = g_cl.m_local->m_bIsScoped() > 0 ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
 
-		if (g_cl.m_local->m_vecVelocity().length_2d() > flMaxSpeed * 0.33f)
+		if (g_cl.m_local->m_vecVelocity().length_2d() > flMaxSpeed / 3)
 			QuickStop();
 		else
-			ClampMovementSpeed(flMaxSpeed * 0.33f);
+			ClampMovementSpeed(flMaxSpeed / 3);
 
 		return;
 	}
