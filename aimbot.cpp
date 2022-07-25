@@ -186,8 +186,10 @@ bool Aimbot::should_shoot() {
 
 	bool single = g_cl.m_weapon_id == SSG08 || g_cl.m_weapon_id == AWP;
 
-	if (single && !tick_shift && !tick_shift2 && g_tickshift.m_double_tap)
+	if (single && !tick_shift && !tick_shift2 && g_tickshift.m_double_tap) {
+		StripAttack();
 		return false;
+	}
 
 	bool between_shots = g_menu.main.aimbot.auto_stop_mode.get(1);
 
