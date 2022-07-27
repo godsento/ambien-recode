@@ -72,7 +72,16 @@ auto __fastcall ShouldSkipAnimationFrame(void* ecx, void* edx) -> bool {
 	return false;
 }
 
+bool ShouldDrawViewModel() {
 
+	if (!g_cl.m_processing || !g_csgo.m_engine->IsInGame() || !g_csgo.m_engine->IsConnected())
+		return false;
+
+	if (!g_menu.main.skins.draw_model_scope.get() && g_cl.m_local->m_bIsScoped())
+		return false;
+
+	return true;
+}
 
 bool Hooks::IsPaused() {
 	static DWORD* return_to_extrapolation = (DWORD*)(pattern::find(g_csgo.m_client_dll,
@@ -133,6 +142,7 @@ void Hooks::init( ) {
 	MH_Initialize();
 	MH_CreateHook(pattern::find(PE::GetModule(HASH("engine.dll")), XOR("55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A")), &CL_Move, reinterpret_cast<void**>(&o_CLMove));
 	MH_CreateHook(pattern::find(PE::GetModule(HASH("client.dll")), XOR("57 8B F9 8B 07 8B 80 ? ? ? ? FF D0 84 C0 75 02")), &ShouldSkipAnimationFrame, NULL);
+	MH_CreateHook(pattern::find(PE::GetModule(HASH("client.dll")), XOR("55 8B EC 51 57 E8 ")), &ShouldDrawViewModel, NULL);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// hook wndproc.

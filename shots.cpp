@@ -3,16 +3,31 @@
 Shots g_shots{ };
 
 void Shots::StoreLastFireData(Player* target, float damage, int bullets, LagRecord* record) {
-	last_aimbot_data.m_target = target;
-	last_aimbot_data.m_record = record;
-	last_aimbot_data.m_time = game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase());
-	last_aimbot_data.m_lat = g_cl.m_latency;
-	last_aimbot_data.m_damage = damage;
-	last_aimbot_data.m_pos = g_cl.m_shoot_pos;
-	last_aimbot_data.m_range = g_cl.m_weapon_info->m_range;
+
+	ShotRecord shot;
+	shot.m_target = target;
+	shot.m_record = record;
+	shot.m_time = game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase());
+	shot.m_lat = g_cl.m_latency;
+	shot.m_damage = damage;
+	shot.m_pos = g_cl.m_shoot_pos;
+	shot.m_range = g_cl.m_weapon_info->m_range;
 
 	if (record)
-		last_aimbot_data.m_record->backtrack_amount = g_csgo.m_globals->m_tick_count - game::TIME_TO_TICKS(record->m_sim_time);
+		shot.m_record->backtrack_amount = g_csgo.m_globals->m_tick_count - game::TIME_TO_TICKS(record->m_sim_time);
+
+	if (shot.m_record)
+		memcpy(&g_shots.last_aimbot_data, &shot, sizeof(ShotRecord));
+	else {
+		ResetAimbotData();
+	}
+
+}
+
+void Shots::ResetAimbotData() {
+	g_shots.last_aimbot_data.m_target = nullptr;
+	g_shots.last_aimbot_data.m_record = nullptr;
+	g_shots.last_aimbot_data.m_damage = 0;
 }
 
 void Shots::OnImpact( IGameEvent *evt ) {

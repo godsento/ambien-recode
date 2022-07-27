@@ -144,8 +144,8 @@ void Aimbot::knife() {
 	if (target.record) {
 		// set target tick.
 
-		if (target.record && !target.record)
-			g_cl.m_cmd->m_tick = game::TIME_TO_TICKS(target.record->m_pred_time + g_cl.m_lerp);
+		if (target.record && !target.record->m_broke_lc)
+			g_cl.m_cmd->m_tick = game::TIME_TO_TICKS(target.record->m_sim_time + g_cl.m_lerp);
 
 		// set view angles.
 		g_cl.m_cmd->m_view_angles = target.angle;
@@ -154,7 +154,7 @@ void Aimbot::knife() {
 		g_cl.m_cmd->m_buttons |= (target.stab ? button_flags_t::IN_ATTACK2 : button_flags_t::IN_ATTACK);
 
 		// choke. 
-		*g_cl.m_packet = false;
+		*g_cl.m_packet = true;
 	}
 }
 

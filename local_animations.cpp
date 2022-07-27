@@ -208,11 +208,19 @@ void Client::update_shit() {
 }*/
 
 
+inline const char* dir[]{
+	"models/player/custom_player/legacy/tm_phoenix.mdl",
+	"models/player/custom_player/eminem/css/t_arctic.mdl",
+	"models/player/custom_player/owston/amongus"
+
+};
 
 void Client::SetAngles() {
 
 	if (!g_cl.m_local || !g_cl.m_processing || !g_cl.m_local->alive() || !g_cl.m_local->m_iHealth())
 		return;
+
+
 
 	// set the nointerp flag.
 	// g_cl.m_local->m_fEffects( ) &= ~EF_NOINTERP;
@@ -287,7 +295,8 @@ void Client::UpdateInformation() {
 	//		m_angle.y = g_hvh.m_direction;
 
 		// write angles to model.
-	g_csgo.m_prediction->SetLocalViewAngles(m_angle);
+	//g_csgo.m_prediction->SetLocalViewAngles(m_angle);
+	game::UpdateAnimationState(state, m_angle);
 
 	if (state->m_speed > 0.1f) {
 		if (state->m_ground)

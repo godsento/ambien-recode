@@ -133,6 +133,8 @@ public:
 	float  pick_random;
 	vec3_t m_unpredicted_vel;
 	bool  m_update_local_animation;
+
+	char   m_model_name[260];
 };
 
 extern Client g_cl;

@@ -316,9 +316,6 @@
     <ClInclude Include="entoffsets.h">
       <Filter>main\hooks\game</Filter>
     </ClInclude>
-    <ClInclude Include="events.h">
-      <Filter>main\hooks\game</Filter>
-    </ClInclude>
     <ClInclude Include="interfaces.h">
       <Filter>main\hooks\game</Filter>
     </ClInclude>
@@ -333,6 +330,9 @@
     </ClInclude>
     <ClInclude Include="pred.h">
       <Filter>main\hooks\game</Filter>
+    </ClInclude>
+    <ClInclude Include="events.h">
+      <Filter>main\misc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -468,9 +468,6 @@
     <ClCompile Include="grenades.cpp">
       <Filter>main\visuals</Filter>
     </ClCompile>
-    <ClCompile Include="events.cpp">
-      <Filter>main\hooks\game</Filter>
-    </ClCompile>
     <ClCompile Include="csgo.cpp">
       <Filter>main\hooks</Filter>
     </ClCompile>
@@ -500,6 +497,9 @@
     </ClCompile>
     <ClCompile Include="wndproc.cpp">
       <Filter>main\hooks\game</Filter>
+    </ClCompile>
+    <ClCompile Include="events.cpp">
+      <Filter>main\misc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

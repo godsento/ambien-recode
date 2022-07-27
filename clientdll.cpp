@@ -96,6 +96,15 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
 		// g_netdata.apply( );
 
 		g_skins.think( );
+
+		if (g_csgo.m_engine->IsInGame() && g_csgo.m_engine->IsConnected())
+		{
+			if (g_cl.m_local && g_cl.m_local->alive())
+			{
+				// Run operator changer, TODO
+				g_visuals.SetupAgents();
+			}
+		}
 	}
 
 	else if( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END ) {
@@ -106,6 +115,8 @@ void Hooks::FrameStageNotify( Stage_t stage ) {
         // restore non-compressed netvars.
 		g_netdata.apply( );
 
+		// test
+		g_csgo.m_engine->FireEvents();
 		//g_cl.UpdateLocalAnimations();
 
 		// update all players.

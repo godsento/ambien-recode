@@ -433,16 +433,16 @@ void LagCompensation::collect_awall_shit(AimPlayer* data) {
 	math::AngleVectors(angDirectionAngle, &forward, &right, &up);
 
 	auto vecStart = g_cl.m_shoot_pos;;
-	auto vecEnd = vecStart + forward * (g_cl.m_shoot_pos.dist_to(data->m_player->m_vecOrigin()) * 1.25f);
+	auto vecEnd = vecStart + forward * (g_cl.m_shoot_pos.dist_to(data->m_player->m_vecOrigin()) * 1.45f);
 
 	vecEnd.z = data->m_player->GetShootPosition().z;
 
 
-	g_csgo.m_engine_trace->TraceRay(Ray(g_cl.m_shoot_pos, vecEnd + right * 17.f), CONTENTS_SOLID, &filter, &data->tr_right);
+	g_csgo.m_engine_trace->TraceRay(Ray(g_cl.m_shoot_pos, vecEnd + right * 16.f), CONTENTS_SOLID, &filter, &data->tr_right);
 	//	g_csgo.m_debug_overlay->AddLineOverlay(g_cl.m_shoot_pos, vecEnd + right * 16.f, 255, 0, 0, false, 1); // base line
 	//	g_csgo.m_debug_overlay->AddLineOverlay(g_cl.m_shoot_pos, data->tr_right.m_endpos, 255, 255, 0, false, 1); // where it hits
 
-	g_csgo.m_engine_trace->TraceRay(Ray(g_cl.m_shoot_pos, vecEnd - right * 17.f), CONTENTS_SOLID, &filter, &data->tr_left);
+	g_csgo.m_engine_trace->TraceRay(Ray(g_cl.m_shoot_pos, vecEnd - right * 16.f), CONTENTS_SOLID, &filter, &data->tr_left);
 	//	g_csgo.m_debug_overlay->AddLineOverlay(g_cl.m_shoot_pos, vecEnd - right * 16.f, 255, 0, 0, false, 1); // base line
 	// g_csgo.m_debug_overlay->AddLineOverlay(g_cl.m_shoot_pos, data->tr_left.m_endpos, 255, 255, 0, false, 1); // where it hits
 }

@@ -26,6 +26,7 @@ public:
     float       m_planted_c4_radius;
     float       m_planted_c4_radius_scaled;
     std::string m_last_bombsite;
+    float health[65]{ 0.f };
 
 	IMaterial* smoke1;
 	IMaterial* smoke2;
@@ -113,6 +114,9 @@ public:
 	void DrawHitboxMatrix( LagRecord* record, Color col, float time );
     void DrawBeams( );
 	void DebugAimbotPoints( Player* player );
+    void test();
+    void cache();
+    void SetupAgents();
 };
 
 extern Visuals g_visuals;

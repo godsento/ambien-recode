@@ -773,11 +773,7 @@ public:
 	Checkbox      nofog;
 	Checkbox      noflash;
 	Checkbox      noscope;
-	Checkbox      fov;
-	Slider        fov_amt;
-	Checkbox      fov_scoped;
-	Checkbox      viewmodel_fov;
-	Slider        viewmodel_fov_amt;
+
 	Checkbox      spectators;
 	Dropdown      spectators_mode;
 	Checkbox      force_xhair;
@@ -789,7 +785,6 @@ public:
 	Checkbox      tracers;
 	Checkbox      impact_beams;
 	Colorpicker   impact_beams_color;
-	Colorpicker   impact_beams_hurt_color;
 	Slider        impact_beams_time;
 	Keybind       thirdperson;
 	Slider        thirdperson_dist;
@@ -836,30 +831,20 @@ public:
 		enemy_radar.setup( XOR( "force enemies on radar" ), XOR( "enemy_radar" ) );
 		RegisterElement( &enemy_radar );
 
+
+
 		// col2.
 
 		removals.setup(XOR("removals"), XOR("Removals"), { XOR("remove recoil"), XOR("remove smoke"), XOR("remove fog"), XOR("remove flash"), XOR("remove scope border") }, true);
 		RegisterElement(&removals, 1);
 
-		fov.setup( XOR( "override fov" ), XOR( "fov" ) );
-		RegisterElement( &fov, 1 );
 
-		fov_amt.setup( "", XOR( "fov_amt" ), 60.f, 140.f, false, 0, 90.f, 1.f, XOR( L"°" ) );
-		RegisterElement( &fov_amt, 1 );
 
-		fov_scoped.setup( XOR( "override fov when scoped" ), XOR( "fov_scoped" ) );
-		RegisterElement( &fov_scoped, 1 );
 
-		viewmodel_fov.setup( XOR( "override viewmodel fov" ), XOR( "viewmodel_fov" ) );
-		RegisterElement( &viewmodel_fov, 1 );
-
-		viewmodel_fov_amt.setup( "", XOR( "viewmodel_fov_amt" ), 60.f, 140.f, false, 0, 90.f, 1.f, XOR( L"°" ) );
-		RegisterElement( &viewmodel_fov_amt, 1 );
-
-		spectators.setup(XOR("Enable Spectator List"), XOR("SpecList"));
+		spectators.setup(XOR("enable spectator list"), XOR("SpecList"));
 		RegisterElement(&spectators, 1);
 
-		spectators_mode.setup(XOR("Spectator List Mode"), XOR("SpectListMode"), { XOR("Ambien"), XOR("Sup / Skeet") });
+		spectators_mode.setup(XOR("spectator list mode"), XOR("SpectListMode"), { XOR("ambien"), XOR("sup / skeet") });
 		spectators_mode.AddShowCallback(callbacks::IsSpectatorListEnabled);
 		RegisterElement(&spectators_mode, 1);
 
@@ -890,10 +875,7 @@ public:
 		impact_beams_color.setup( XOR( "impact beams color" ), XOR( "impact_beams_color" ), colors::light_blue );
 		RegisterElement( &impact_beams_color );
 
-		impact_beams_hurt_color.setup( XOR( "impact beams hurt color" ), XOR( "impact_beams_hurt_color" ), colors::red );
-		RegisterElement( &impact_beams_hurt_color );
-
-		impact_beams_time.setup( XOR( "impact beams time" ), XOR( "impact_beams_time" ), 1.f, 10.f, true, 0, 1.f, 1.f, XOR( L"s" ) );
+		impact_beams_time.setup( XOR( "impact beams time" ), XOR( "impact_beams_time" ), 1.f, 10.f, false, 0, 3.f, 1.f, XOR( L"s" ) );
 		RegisterElement( &impact_beams_time );
 
 		thirdperson.setup( XOR( "thirdperson" ), XOR( "thirdperson" ) );
@@ -917,7 +899,6 @@ public:
 	Slider   z_dist;
 
 	Keybind  fakewalk;
-	Keybind  autopeek;
 
 
 	Dropdown fakewalk_mode;
@@ -964,9 +945,6 @@ public:
 
 		desync_ticks.setup(XOR("ticks"), XOR("desyncticks"), 10, 40, false, 0, 20, 1, XOR(L"t"));
 		RegisterElement(&desync_ticks, 1);
-
-		autopeek.setup( XOR( "automatic peek" ), XOR( "autopeek" ) );
-		RegisterElement( &autopeek, 1 );
 	}
 };
 
@@ -1194,9 +1172,23 @@ public:
 	Dropdown glove;
 	Edit	 glove_id;
 
+	Checkbox draw_model_scope;
+	Slider   scoped_fov;
+	Slider   second_scoped_fov;
+	Slider   viewmodel_fov_amt;
+	Slider fov_amt;
+
+	Dropdown mdl_c;
+	Checkbox mdl;
+	Button   force_upd;
+
 public:
 	void init( ) {
 		SetTitle(XOR("skins"), "change skins.");
+
+
+
+
 
 		enable.setup( XOR( "enable" ), XOR( "skins_enable" ) );
 		enable.SetCallback( callbacks::ForceFullUpdate );
@@ -2063,6 +2055,35 @@ public:
 		seed_daggers.AddShowCallback( callbacks::KNIFE_SHADOW_DAGGERS );
 		RegisterElement( &seed_daggers );
 
+		draw_model_scope.setup(XOR("draw model in scope"), XOR("draw_model_scope"));
+		RegisterElement(&draw_model_scope);
+
+
+		fov_amt.setup("fov amount", XOR("fov_amt"), 60.f, 140.f, true, 0, 90.f, 1.f, XOR(L"°"));
+		RegisterElement(&fov_amt);
+
+		scoped_fov.setup("first scope fov percentage", XOR("scoped_fov"), 0.f, 100.f, true, 0, 50.f, 1.f, XOR(L"%"));
+		RegisterElement(&scoped_fov);
+
+		second_scoped_fov.setup("second scope fov percentage", XOR("second_scoped_fov"), 0.f, 100.f, true, 0, 50.f, 1.f, XOR(L"%"));
+		RegisterElement(&second_scoped_fov);
+
+		viewmodel_fov_amt.setup("viewmodel fov", XOR("viewmodel_fov_amt"), 60.f, 150.f, true, 0, 68.f, 1.f, XOR(L"°"));
+		RegisterElement(&viewmodel_fov_amt);
+
+
+		mdl.setup(XOR("model changer (fuck you zeze)"), XOR("mdl_c"));
+		RegisterElement(&mdl);
+
+		// setup models here
+		mdl_c.setup(XOR(""), XOR("mdl_c"), { XOR("last precached"),  XOR("cs:s arctic"), "among us"}, false);
+		mdl_c.SetCallback(callbacks::ForceFullUpdate);
+		RegisterElement(&mdl_c);
+
+		force_upd.setup(XOR("update"));
+		force_upd.SetCallback(callbacks::ForceFullUpdate);
+		RegisterElement(&force_upd);
+
 		// col 2.
 		knife.setup( XOR( "knife model" ), XOR( "skins_knife_model" ), { XOR( "off" ), XOR( "bayonet" ), XOR( "bowie" ), XOR( "butterfly" ), XOR( "falchion" ), XOR( "flip" ), XOR( "gut" ), XOR( "huntsman" ), XOR( "karambit" ), XOR( "m9 bayonet" ), XOR( "daggers" ) } );
 		knife.SetCallback( callbacks::SkinUpdate );
@@ -2181,14 +2202,14 @@ public:
 		motion_blur.setup(XOR("override motion blur"), XOR("motion_blur"));
 		RegisterElement(&motion_blur, 1);
 
-		mat_motion_blur_strength.setup(XOR("motion blur strength"), XOR("motion_blur_strength"), 0, 1000, false, 0, 100, 10, L"%");
+		mat_motion_blur_strength.setup(XOR("motion blur strength"), XOR("motion_blur_strength"), 0, 1000, true, 0, 100, 10, L"%");
 		RegisterElement(&mat_motion_blur_strength, 1);
 
 
-		mat_motion_blur_rotation_intensity.setup(XOR("motion blur rotation intensity"), XOR("mat_motion_blur_rotation_intensity"), 0, 1000, false, 0, 100, 10, L"%");
+		mat_motion_blur_rotation_intensity.setup(XOR("motion blur rotation intensity"), XOR("mat_motion_blur_rotation_intensity"), 0, 1000, true, 0, 100, 10, L"%");
 		RegisterElement(&mat_motion_blur_rotation_intensity, 1);
 
-		mat_motion_blur_falling_intensity.setup(XOR("motion blur falling intensity"), XOR("mat_motion_blur_falling_intensity"), 0, 1000, false, 0, 100, 10, L"%");
+		mat_motion_blur_falling_intensity.setup(XOR("motion blur falling intensity"), XOR("mat_motion_blur_falling_intensity"), 0, 1000, true, 0, 100, 10, L"%");
 		RegisterElement(&mat_motion_blur_falling_intensity, 1);
 
 
@@ -2210,6 +2231,8 @@ public:
 	Button   save;
 	Button   load;
 
+
+
 public:
 
 	void init( ) {
@@ -2217,6 +2240,8 @@ public:
 
 		menu_color.setup( XOR( "menu color" ), XOR( "menu_color" ), Color(89, 152, 224), &g_gui.m_color);
 		RegisterElement( &menu_color );
+
+
 
 		mode.setup( XOR( "safety mode" ), XOR( "mode" ), { XOR( "matchmaking" ), XOR( "no-spread" ) } );
 		RegisterElement( &mode, 1 );

@@ -229,11 +229,10 @@ void Resolver::ResolveWalk( AimPlayer* data, LagRecord* record ) {
 	}
 
 	if (record->m_anim_velocity.length() > 30.f) { // niggers
-		data->m_stand_index = 0;
-		data->m_stand_index2 = 0;
 
-
-		if (record->m_anim_velocity.length() > 100.f || record->m_lag > 7) {
+		if (record->m_anim_velocity.length() > 100.f || record->m_lag > 6) {
+			data->m_stand_index = 0;
+			data->m_stand_index2 = 0;
 			data->m_body_index = 0;
 			data->m_moving_index = 0;
 			record->m_resolver_mode = "moving (high)";
@@ -316,7 +315,7 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 		}
 
 
-		switch (data->m_stand_index % 5) {
+		switch (data->m_stand_index % 6) {
 		case 0:
 			anti_freestand(data, record);
 			break;
@@ -329,12 +328,16 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 			record->m_eye_angles.y = away - 140.f;
 			break;
 		case 3:  // rotated lby (+)
-			record->m_resolver_mode = tfm::format("standing(3:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
-			record->m_eye_angles.y = record->m_body - (add_lby + 45.f);
+			record->m_resolver_mode = ("standing(3)");
+			record->m_eye_angles.y = away - 67.75f;
 			break;
 		case 4: // rotated lby (-)
-			record->m_resolver_mode = tfm::format("standing(4:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
-			record->m_eye_angles.y = record->m_body + (add_lby + 45.f);
+			record->m_resolver_mode = ("standing(4)");
+			record->m_eye_angles.y = away + 67.75f;;
+			break;
+		case 5: // rotated lby (-)
+			record->m_resolver_mode = ("standing(5)");
+			record->m_eye_angles.y = away;
 			break;
 		}
 
@@ -344,7 +347,7 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 	// stand2 -> no known last move.
 	record->m_mode = Modes::RESOLVE_STAND2;
 
-	switch( data->m_stand_index2 % 5 ) {
+	switch( data->m_stand_index2 % 6 ) {
 
 	case 0: // backward / freestand
 		anti_freestand(data, record);
@@ -361,13 +364,16 @@ void Resolver::ResolveStand( AimPlayer* data, LagRecord* record ) {
 		break;
 
 	case 3:  // rotated lby (+)
-		record->m_resolver_mode = tfm::format("standing(1:3:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
-		record->m_eye_angles.y = record->m_body - (add_lby + 45.f);
+		record->m_resolver_mode = ("standing(1:3)");
+		record->m_eye_angles.y = away - 67.75f;
 		break;
-
 	case 4: // rotated lby (-)
-		record->m_resolver_mode = tfm::format("standing(1:4:%i)", data->m_player->GetSequenceActivity(record->m_layers[3].m_sequence));
-		record->m_eye_angles.y = record->m_body + (add_lby + 45.f);
+		record->m_resolver_mode = ("standing(1:4)");
+		record->m_eye_angles.y = away + 67.75f;;
+		break;
+	case 5: // rotated lby (-)
+		record->m_resolver_mode = ("standing(1:5)");
+		record->m_eye_angles.y = away;
 		break;
 	}
 }

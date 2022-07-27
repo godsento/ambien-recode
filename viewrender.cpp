@@ -2,25 +2,20 @@
 
 void Hooks::OnRenderStart( ) {
 	// call og.
+
+	if (!g_cl.m_processing || !g_csgo.m_engine->IsConnected() || !g_csgo.m_engine->IsInGame())
+		return g_hooks.m_view_render.GetOldMethod< OnRenderStart_t >(CViewRender::ONRENDERSTART)(this);
+
 	g_hooks.m_view_render.GetOldMethod< OnRenderStart_t >( CViewRender::ONRENDERSTART )( this );
 
-	if( g_menu.main.visuals.fov.get( ) ) {
-		if( g_cl.m_local && g_cl.m_local->m_bIsScoped( ) ) {
-			if( g_menu.main.visuals.fov_scoped.get( ) ) {
-				if( g_cl.m_local->GetActiveWeapon( )->m_zoomLevel( ) != 2 ) {
-					g_csgo.m_view_render->m_view.m_fov = g_menu.main.visuals.fov_amt.get( );
-				}
-				else {
-					g_csgo.m_view_render->m_view.m_fov += 45.f;
-				}
-			}
-		}
+	if (g_cl.m_local->GetActiveWeapon()->m_zoomLevel() == 2)
+		g_csgo.m_view_render->m_view.m_fov = g_menu.main.skins.fov_amt.get() * (g_menu.main.skins.second_scoped_fov.get() / 100);
+	else if (g_cl.m_local->GetActiveWeapon()->m_zoomLevel() == 1)
+		g_csgo.m_view_render->m_view.m_fov = g_menu.main.skins.fov_amt.get() * (g_menu.main.skins.scoped_fov.get() / 100);
+	else
+		g_csgo.m_view_render->m_view.m_fov = g_menu.main.skins.fov_amt.get();
 
-		else g_csgo.m_view_render->m_view.m_fov = g_menu.main.visuals.fov_amt.get( );
-	}
-
-	if( g_menu.main.visuals.viewmodel_fov.get( ) )
-		g_csgo.m_view_render->m_view.m_viewmodel_fov = g_menu.main.visuals.viewmodel_fov_amt.get( );
+	g_csgo.m_view_render->m_view.m_viewmodel_fov = g_menu.main.skins.viewmodel_fov_amt.get();
 }
 
 void Hooks::RenderView( const CViewSetup &view, const CViewSetup &hud_view, int clear_flags, int what_to_draw ) {

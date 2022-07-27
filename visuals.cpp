@@ -896,10 +896,9 @@ void Visuals::DrawPlayer(Player* player) {
 		int y = box.y + 1;
 		int h = box.h - 2;
 
-		// retarded servers that go above 100 hp..
-		int hp = std::min(100, player->m_iHealth());
 
-		static float health[65]{ 0.f };
+		// retarded servers that go above 100 hp..
+		int hp = std::clamp(player->m_iHealth(), 0, 100);
 
 		if (health[player->index() - 1] != hp)
 			health[player->index() - 1] = math::lerp(g_csgo.m_globals->m_frametime * 8, health[player->index() - 1], hp);
@@ -911,7 +910,7 @@ void Visuals::DrawPlayer(Player* player) {
 		int g = std::min((510 * hp) / 100, 255);
 
 		// get hp bar height.
-		int fill = (int)std::round(hp_ * h / 100.f);
+		int fill = std::clamp((int)std::round(hp_ * h / 100.f), 0, h);
 
 		// render background.
 		render::rect_filled(box.x - 6, y - 1, 4, h + 2, { 10, 10, 10, low_alpha });
@@ -919,9 +918,17 @@ void Visuals::DrawPlayer(Player* player) {
 		// render actual bar.
 		render::rect(box.x - 5, y + h - fill, 2, fill, { r, g, 0, alpha });
 
+		bool dmg_shit = false;
+
+		if (g_cl.m_weapon && g_cl.m_weapon_info) {
+			bool kev = penetration::IsArmored(player, HITGROUP_STOMACH);
+			bool ooneshot = g_cl.m_weapon_id == REVOLVER || g_cl.m_weapon_id == SSG08 || g_cl.m_weapon_id == AWP;
+			if (ooneshot && !kev)
+				dmg_shit = true;
+		}
 		// if hp is below max, draw a string.
-		if (hp != 100)
-			render::esp_small.string(box.x - 5, y + (h - fill) - 5, { 255, 255, 255, low_alpha }, std::to_string(hp), render::ALIGN_CENTER);
+		if (dmg_shit || hp < 94)
+			render::esp_small.string(box.x - 5, y + (h - fill) - 5, { 255, 255, 255, low_alpha }, std::to_string(player->m_iHealth()), render::ALIGN_CENTER);
 	}
 
 	// draw flags.
@@ -975,6 +982,21 @@ void Visuals::DrawPlayer(Player* player) {
 			if (*it == 5 && player->HasC4())
 				flags.push_back({ ("BOMB"), { 255, 0, 0, low_alpha } });
 		}
+
+		AimPlayer* data = &g_aimbot.m_players[player->index() - 1];
+
+		// make sure everything is valid.
+		if (data && data->m_records.size()) {
+			// grab lag record.
+			LagRecord* current = data->m_records.front().get();
+
+			if (current && !current->dormant() && current->m_mode != g_resolver.RESOLVE_NONE) {
+				bool res = current->m_mode == g_resolver.RESOLVE_WALK || current->m_mode == g_resolver.RESOLVE_BODY;
+				Color resolved_color = res ? 0xff15c27b : 0xff0000ff;
+				flags.push_back({ ("res"), resolved_color });
+			}
+		}
+
 
 		// iterate flags.
 		for (size_t i{ }; i < flags.size(); ++i) {
@@ -1457,7 +1479,7 @@ void Visuals::DrawHitboxMatrix( LagRecord* record, Color col, float time ) {
 	}
 }
 
-void Visuals::DrawBeams( ) {
+void Visuals::DrawBeams() {
 	size_t     impact_count;
 	float      curtime, dist;
 	bool       is_final_impact;
@@ -1465,50 +1487,50 @@ void Visuals::DrawBeams( ) {
 	BeamInfo_t beam_info;
 	Beam_t* beam;
 
-	if( !g_cl.m_local )
+	if (!g_cl.m_local)
 		return;
 
-	if( !g_menu.main.visuals.impact_beams.get( ) )
+	if (!g_menu.main.visuals.impact_beams.get())
 		return;
 
 	auto vis_impacts = &g_shots.m_vis_impacts;
 
 	// the local player is dead, clear impacts.
-	if( !g_cl.m_processing ) {
-		if( !vis_impacts->empty( ) )
-			vis_impacts->clear( );
+	if (!g_cl.m_processing) {
+		if (!vis_impacts->empty())
+			vis_impacts->clear();
 	}
 
 	else {
-		impact_count = vis_impacts->size( );
-		if( !impact_count )
+		impact_count = vis_impacts->size();
+		if (!impact_count)
 			return;
 
-		curtime = game::TICKS_TO_TIME( g_cl.m_local->m_nTickBase( ) );
+		curtime = game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase());
 
-		for( size_t i{ impact_count }; i-- > 0; ) {
-			auto impact = &vis_impacts->operator[ ]( i );
-			if( !impact )
+		for (size_t i{ impact_count }; i-- > 0; ) {
+			auto impact = &vis_impacts->operator[ ](i);
+			if (!impact)
 				continue;
 
 			// impact is too old, erase it.
-			if( std::abs( curtime - game::TICKS_TO_TIME( impact->m_tickbase ) ) > g_menu.main.visuals.impact_beams_time.get( ) ) {
-				vis_impacts->erase( vis_impacts->begin( ) + i );
+			if (std::abs(curtime - game::TICKS_TO_TIME(impact->m_tickbase)) > g_menu.main.visuals.impact_beams_time.get()) {
+				vis_impacts->erase(vis_impacts->begin() + i);
 
 				continue;
 			}
 
 			// already rendering this impact, skip over it.
-			if( impact->m_ignore )
+			if (impact->m_ignore)
 				continue;
 
 			// is this the final impact?
 			// last impact in the vector, it's the final impact.
-			if( i == ( impact_count - 1 ) )
+			if (i == (impact_count - 1))
 				is_final_impact = true;
 
 			// the current impact's tickbase is different than the next, it's the final impact.
-			else if( ( i + 1 ) < impact_count && impact->m_tickbase != vis_impacts->operator[ ]( i + 1 ).m_tickbase )
+			else if ((i + 1) < impact_count && impact->m_tickbase != vis_impacts->operator[ ](i + 1).m_tickbase)
 				is_final_impact = true;
 
 			else
@@ -1517,51 +1539,43 @@ void Visuals::DrawBeams( ) {
 			// is this the final impact?
 			// is_final_impact = ( ( i == ( impact_count - 1 ) ) || ( impact->m_tickbase != vis_impacts->at( i + 1 ).m_tickbase ) );
 
-			if( is_final_impact ) {
+			if (is_final_impact) {
 				// calculate start and end position for beam.
 				start = impact->m_shoot_pos;
 
-				dir = ( impact->m_impact_pos - start ).normalized( );
-				dist = ( impact->m_impact_pos - start ).length( );
+				dir = (impact->m_impact_pos - start).normalized();
+				dist = (impact->m_impact_pos - start).length();
 
-				end = start + ( dir * dist );
+				end = start + (dir * dist);
 
 				// setup beam info.
 				// note - dex; possible beam models: sprites/physbeam.vmt | sprites/white.vmt
 				beam_info.m_vecStart = start;
 				beam_info.m_vecEnd = end;
-				beam_info.m_nModelIndex = g_csgo.m_model_info->GetModelIndex( XOR( "sprites/purplelaser1.vmt" ) );
-				beam_info.m_pszModelName = XOR( "sprites/purplelaser1.vmt" );
+				beam_info.m_nModelIndex = g_csgo.m_model_info->GetModelIndex(XOR("sprites/white.vmt"));
+				beam_info.m_pszModelName = XOR("sprites/white.vmt");
 				beam_info.m_flHaloScale = 0.f;
-				beam_info.m_flLife = g_menu.main.visuals.impact_beams_time.get( );
-				beam_info.m_flWidth = 2.f;
-				beam_info.m_flEndWidth = 2.f;
-				beam_info.m_flFadeLength = 0.f;
-				beam_info.m_flAmplitude = 0.f;   // beam 'jitter'.
+				beam_info.m_flLife = g_menu.main.visuals.impact_beams_time.get();
+				beam_info.m_flWidth = .6f;
+				beam_info.m_flEndWidth = .75f;
+				beam_info.m_flFadeLength = 3.0f;
+				beam_info.m_flAmplitude = 0.f;//beam 'jitter'.
 				beam_info.m_flBrightness = 255.f;
-				beam_info.m_flSpeed = 0.5f;  // seems to control how fast the 'scrolling' of beam is... once fully spawned.
-				beam_info.m_nStartFrame = 0;
-				beam_info.m_flFrameRate = 0.f;
-				beam_info.m_nSegments = 2;     // controls how much of the beam is 'split up', usually makes m_flAmplitude and m_flSpeed much more noticeable.
+				beam_info.m_flSpeed = 1.f;  // seems to control how fast the 'scrolling' of beam is... once fully spawned.
+				beam_info.m_nStartFrame = 1;
+				beam_info.m_flFrameRate = 60;
+				beam_info.m_nSegments = 4;     // controls how much of the beam is 'split up', usually makes m_flAmplitude and m_flSpeed much more noticeable.
 				beam_info.m_bRenderable = true;  // must be true or you won't see the beam.
-				beam_info.m_nFlags = 0;
+				beam_info.m_nFlags = 0x00000040 | 0x00000004 | 0x00000001 | 0x00008000;
 
-				if( !impact->m_hit_player ) {
-					beam_info.m_flRed = g_menu.main.visuals.impact_beams_color.get( ).r( );
-					beam_info.m_flGreen = g_menu.main.visuals.impact_beams_color.get( ).g( );
-					beam_info.m_flBlue = g_menu.main.visuals.impact_beams_color.get( ).b( );
-				}
-
-				else {
-					beam_info.m_flRed = g_menu.main.visuals.impact_beams_hurt_color.get( ).r( );
-					beam_info.m_flGreen = g_menu.main.visuals.impact_beams_hurt_color.get( ).g( );
-					beam_info.m_flBlue = g_menu.main.visuals.impact_beams_hurt_color.get( ).b( );
-				}
+				beam_info.m_flRed = g_menu.main.visuals.impact_beams_color.get().r();
+				beam_info.m_flGreen = g_menu.main.visuals.impact_beams_color.get().g();
+				beam_info.m_flBlue = g_menu.main.visuals.impact_beams_color.get().b();
 
 				// attempt to render the beam.
-				beam = game::CreateGenericBeam( beam_info );
-				if( beam ) {
-					g_csgo.m_beams->DrawBeam( beam );
+				beam = game::CreateGenericBeam(beam_info);
+				if (beam) {
+					g_csgo.m_beams->DrawBeam(beam);
 
 					// we only want to render a beam for this impact once.
 					impact->m_ignore = true;
@@ -1572,5 +1586,116 @@ void Visuals::DrawBeams( ) {
 }
 
 void Visuals::DebugAimbotPoints( Player* player ) {
+
+}
+
+
+// Bind only once
+bool ForceOnce = false;
+bool LoadModel = false;
+
+// This is how custom player models working.
+// U need to precache them first and use only after that.
+bool LockNLoad(const char* MdlName)
+{
+	// hooking INetworkStringTable
+	INetworkStringTable* m_2k20_model = g_csgo.m_networkstringtable->FindTable("modelprecache");
+
+	if (m_2k20_model)
+	{
+		g_csgo.m_model_info->FindOrLoadModel(MdlName);
+		int modelindex = m_2k20_model->AddString(false, MdlName);
+		if (modelindex == NULL)	// if not exists, skip
+			return false;
+	}
+	return true;
+}
+
+bool ran = false;
+
+
+
+auto pheonix = "models/player/custom_player/legacy/tm_phoenix.mdl";
+auto arctic = "models/player/custom_player/eminem/css/t_arctic.mdl";
+auto amogus = "models/player/custom_player/owston/amongus";
+
+
+void Visuals::test() {
+	if (!g_csgo.m_engine->IsInGame() || !g_csgo.m_engine->IsConnected())
+		ran = false;
+}
+
+
+void Visuals::cache() {
+
+	if (!g_cl.m_local || !g_cl.m_processing || !g_cl.m_local->alive() || !g_cl.m_local->m_iHealth())
+		return;
+
+
+	if (g_cl.m_local->GetModel()->m_name != arctic && g_cl.m_local->GetModel()->m_name != amogus)
+		memcpy(&g_cl.m_model_name, &g_cl.m_local->GetModel()->m_name, sizeof(g_cl.m_local->GetModel()->m_name));
+
+}
+
+// setup models
+void Visuals::SetupAgents()
+{
+
+	if (!g_cl.m_local || !g_cl.m_processing || !g_cl.m_local->alive() || !g_cl.m_local->m_iHealth())
+		return;
+
+	cache();
+
+	if (g_cl.m_model_name == arctic || g_cl.m_model_name == amogus)
+		memcpy(&g_cl.m_model_name, &pheonix, sizeof(pheonix));
+
+	//if (!ran) {
+	//	ran = true;
+		// call this once
+	if (!g_menu.main.skins.mdl.get())
+	{
+		// Strip?
+		// TODO backup and save default model
+
+		if (g_menu.main.skins.mdl_c.get() == 0)	// first
+			g_csgo.m_model_info->GetModelIndex(g_cl.m_model_name);
+		else if (g_menu.main.skins.mdl_c.get() == 1)
+			g_csgo.m_model_info->GetModelIndex(arctic);
+		else if (g_menu.main.skins.mdl_c.get() == 2)
+			g_csgo.m_model_info->GetModelIndex(amogus);
+
+		ForceOnce = true;
+		LoadModel = false;
+		return;
+	}
+	// lock
+	else
+		ForceOnce = false;
+
+	if (!ForceOnce)
+	{
+		// For example let's precache Counter-Strike Online 2 player operators
+		// Download them first OFC
+		if (!LoadModel)
+		{
+			// Don't change the models path, it's defined in .mdl source code
+			LockNLoad(g_cl.m_model_name);
+			LockNLoad(arctic);
+			LockNLoad(amogus);
+
+			LoadModel = true;	// we done here, no need to spam this
+		}
+
+		static int iModel = g_menu.main.skins.mdl.get();
+
+		if (g_menu.main.skins.mdl_c.get() == 0)
+			iModel = g_csgo.m_model_info->GetModelIndex(g_cl.m_model_name);
+		else if (g_menu.main.skins.mdl_c.get() == 1)
+			iModel = g_csgo.m_model_info->GetModelIndex(arctic);
+		else if (g_menu.main.skins.mdl_c.get() == 2)
+			iModel = g_csgo.m_model_info->GetModelIndex(amogus);
+
+		g_cl.m_local->SetModelIndex(iModel);
+	}
 
 }

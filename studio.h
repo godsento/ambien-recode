@@ -90,6 +90,12 @@ public:
         return util::get_method< const model_t *(__thiscall *)( void *, int ) >( this, GETMODEL )( this, modelindex );
     }
 
+	__forceinline void SetModelIndex(int index)
+	{
+		return util::get_method< void(__thiscall*)(void*, int)>(this, 75)(this, index);
+	}
+
+
 	__forceinline int GetModelIndex( const char* model ) {
 		return util::get_method< int( __thiscall* )( void*, const char* ) >( this, GETMODELINDEX )( this, model );
 	}

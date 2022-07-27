@@ -312,6 +312,12 @@ public:
 		return util::get_method< const model_t *(__thiscall *)(void *) >(renderable(), 8)(renderable());
 	}
 
+	__forceinline void SetModelIndex(int index)
+	{
+		return util::get_method< void(__thiscall*)(void*, int)>(this, 75)(this, index);
+	}
+
+
 	__forceinline void DrawModel(int flags = STUDIO_RENDER, const RenderableInstance_t &instance = {}) {
 		return util::get_method< void(__thiscall *)(void *, int, const RenderableInstance_t &)>(renderable(), 9)(renderable(), flags, instance);
 	}

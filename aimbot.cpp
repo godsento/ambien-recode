@@ -208,8 +208,25 @@ void Aimbot::think( ) {
 	init( );
 
 	// sanity.
-	if ( !g_cl.m_weapon )
+	if (!g_cl.m_weapon) {
+		g_shots.ResetAimbotData();
 		return;
+	}
+
+
+	// no grenades or bomb.
+
+	if (g_cl.m_weapon_type == WEAPONTYPE_GRENADE || g_cl.m_weapon_type == WEAPONTYPE_C4) {
+
+		if (g_cl.m_weapon_fire) {
+			if ((g_cl.m_cmd->m_buttons & IN_ATTACK) || (g_cl.m_cmd->m_buttons & IN_ATTACK2)) {
+				*g_cl.m_packet = true;
+				g_shots.ResetAimbotData();
+			}
+
+		}
+		return;
+	}
 
 	bool auto_ = g_cl.m_weapon_id == G3SG1 || g_cl.m_weapon_id == SCAR20 || g_cl.m_weapon_info->m_is_full_auto;
 
@@ -218,13 +235,11 @@ void Aimbot::think( ) {
 	if (should_strip && !auto_)
 		StripAttack();
 
-	// no grenades or bomb.
-	if ( g_cl.m_weapon_type == WEAPONTYPE_GRENADE || g_cl.m_weapon_type == WEAPONTYPE_C4 )
-		return;
-
 	// we have no aimbot enabled.
-	if ( !g_menu.main.aimbot.enable.get( ) )
+	if (!g_menu.main.aimbot.enable.get()) {
+		g_shots.ResetAimbotData();
 		return;
+	}
 
 	// animation silent aim, prevent the ticks with the shot in it to become the tick that gets processed.
 	// we can do this by always choking the tick before we are able to shoot.
@@ -255,6 +270,7 @@ void Aimbot::think( ) {
 	// run knifebot.
 	if ( g_cl.m_weapon_type == WEAPONTYPE_KNIFE && g_cl.m_weapon_id != ZEUS ) {
 		knife( );
+		g_shots.ResetAimbotData();
 		return;
 	}
 
@@ -389,7 +405,7 @@ void Aimbot::find( ) {
 		// if we can scope.
 		bool can_scope = !g_cl.m_local->m_bIsScoped( ) && ( g_cl.m_weapon_id == AUG || g_cl.m_weapon_id == SG553 || g_cl.m_weapon_type == WEAPONTYPE_SNIPER_RIFLE );
 
-		float flMaxSpeed = g_cl.m_local->m_bIsScoped() > 0 ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
+		float flMaxSpeed = g_cl.m_local->m_bIsScoped() ? g_cl.m_weapon_info->m_max_player_speed_alt : g_cl.m_weapon_info->m_max_player_speed;
 
 
 		bool accurate_speed = (g_cl.m_unpredicted_vel.length() <= flMaxSpeed / 3) || (g_cl.m_local->m_vecVelocity().length() <= flMaxSpeed / 3);
@@ -1014,7 +1030,7 @@ void Aimbot::apply( ) {
 
 //		g_notify.add(tfm::format("hc on this tick is %i\n", goal_hc));
 
-		if ( m_target ) {
+		if ( m_target && m_record ) {
 			// make sure to aim at un-interpolated data.
 			// do this so BacktrackEntity selects the exact record.
 			if ( m_record && !m_record->m_broke_lc )
@@ -1033,7 +1049,7 @@ void Aimbot::apply( ) {
 		g_cl.m_cmd->m_view_angles -= g_cl.m_local->m_aimPunchAngle( ) * g_csgo.weapon_recoil_scale->GetFloat( );
 
 		// store fired shot.
-		g_shots.StoreLastFireData( m_target ? m_target : nullptr, m_target ? m_damage : -1.f, g_cl.m_weapon_info->m_bullets, m_target ? m_record : nullptr );
+		g_shots.StoreLastFireData( m_target ? m_target : nullptr, m_target ? m_damage : 0, 0, m_target ? m_record : nullptr );
 
 		// set that we fired.
 		g_cl.m_shot = true;

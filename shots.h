@@ -65,6 +65,7 @@ private:
 
 public:
 	void StoreLastFireData( Player* target, float damage, int bullets, LagRecord* record );
+	void ResetAimbotData();
 	void OnImpact( IGameEvent* evt );
 	void OnHurt( IGameEvent* evt );
 	void OnFrameStage( );

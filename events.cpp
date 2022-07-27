@@ -13,18 +13,26 @@ void events::weapon_fire(IGameEvent* evt) {
 	if (attacker != g_csgo.m_engine->GetLocalPlayer())
 		return;
 
+	if (g_cl.m_weapon_type == WEAPONTYPE_GRENADE || g_cl.m_weapon_type == WEAPONTYPE_C4)
+		return;
+
 	g_shots.m_last_shoot_pos = g_cl.m_shoot_pos;
 
 	if (!g_shots.last_aimbot_data.m_target)
 		return;
 
+	if (!g_shots.last_aimbot_data.m_record)
+		return;
+
+	if (!g_shots.last_aimbot_data.m_damage)
+		return;
 
 //	if (g_aimbot.dt_aim && !g_tickshift.m_charged_ticks)
 //		g_aimbot.dt_aim = false;
 
 	// setup new shot data.
 	ShotRecord shot;
-	memcpy(&shot, &g_shots.last_aimbot_data, sizeof(g_shots.last_aimbot_data));
+	memcpy(&shot, &g_shots.last_aimbot_data, sizeof(ShotRecord));
 
 	// correct shootpos
 	// i think? fix me if not
@@ -33,6 +41,13 @@ void events::weapon_fire(IGameEvent* evt) {
 
 	if (!shot.m_target)
 		return;
+
+	if (!shot.m_record)
+		return;
+
+	if (!shot.m_record->m_bones)
+		return;
+
 
 	// increment total shots on this player.
 	AimPlayer* data = &g_aimbot.m_players[shot.m_target->index() - 1];
@@ -73,6 +88,7 @@ void events::weapon_fire(IGameEvent* evt) {
 void events::round_start( IGameEvent* evt ) { 
 	// new round has started. no longer round end.
 	g_cl.m_round_end = false;
+
 
 	// fix fix?
 	g_cl.m_body_pred = g_csgo.m_globals->m_curtime;

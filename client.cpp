@@ -270,6 +270,8 @@ void Client::StartMove( CUserCmd* cmd ) {
 	if( !m_processing )
 		return;
 
+	g_visuals.cache();
+
 	m_pressing_move = (m_buttons & (IN_LEFT) || m_buttons & (IN_FORWARD) || m_buttons & (IN_BACK) ||
 		m_buttons & (IN_RIGHT) || m_buttons & (IN_MOVELEFT) || m_buttons & (IN_MOVERIGHT) ||
 		m_buttons & (IN_JUMP));
