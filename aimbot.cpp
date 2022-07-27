@@ -706,7 +706,15 @@ bool AimPlayer::SetupHitboxPoints(LagRecord* record, BoneArray* bones, int index
 
 			// add extra point on back.
 			if (g_menu.main.aimbot.multipoint.get(1)) {
+
+				br = bbox->m_radius * (bscale * 0.9f);
+
 				vec3_t back{ center.x, bbox->m_maxs.y - br, center.z };
+				vec3_t right{ center.x, center.y, bbox->m_maxs.z + br };
+				vec3_t left{ center.x, center.y, bbox->m_mins.z - br };
+
+				points.push_back(HitscanPoint_t{ index, right, false, false });
+				points.push_back(HitscanPoint_t{ index, left, false, false });
 				points.push_back(HitscanPoint_t{ index, back, false, false });
 			}
 		}
