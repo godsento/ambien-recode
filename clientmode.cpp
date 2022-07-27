@@ -41,6 +41,8 @@ bool Hooks::CreateMove( float time, CUserCmd* cmd ) {
 	if( !cmd->m_command_number )
 		return ret;
 
+
+
 	// if we arrived here, called from -> CInput::CreateMove
 	// call EngineClient::SetViewAngles according to what the original returns.
 	if( ret )
@@ -48,6 +50,16 @@ bool Hooks::CreateMove( float time, CUserCmd* cmd ) {
 
 	// random_seed isn't generated in ClientMode::CreateMove yet, we must set generate it ourselves.
 	cmd->m_random_seed = g_csgo.MD5_PseudoRandom( cmd->m_command_number ) & 0x7fffffff;
+
+	if (g_gui.m_open) {
+		// are we IN_ATTACK?
+		if (cmd->m_buttons & IN_ATTACK)
+			cmd->m_buttons &= ~IN_ATTACK;
+
+		// are we IN_ATTACK2?
+		if (cmd->m_buttons & IN_ATTACK2)
+			cmd->m_buttons &= ~IN_ATTACK2;
+	}
 
 	// get bSendPacket off the stack.
 	g_cl.m_packet = stack.next( ).local( 0x1c ).as< bool* >( );
